@@ -17,6 +17,10 @@ end
 target 'ProductCatalog' do
   config = use_native_modules!
 
+  # RNScreens contains Swift and imports React-RCTImage, which only exposes a
+  # module map when asked.
+  pod 'React-RCTImage', :path => "#{config[:reactNativePath]}/Libraries/Image", :modular_headers => true
+
   use_react_native!(
     :path => config[:reactNativePath],
     # An absolute path to your application root.
