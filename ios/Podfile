@@ -17,8 +17,10 @@ end
 target 'ProductCatalog' do
   config = use_native_modules!
 
-  # RNScreens contains Swift and imports React-RCTImage, which only exposes a
-  # module map when asked.
+  # RNScreens contains Swift, and a Swift pod cannot link a static-library
+  # dependency that has no module map; React-RCTImage only gets one when asked.
+  # The :path must match the source use_react_native! registers, or CocoaPods
+  # rejects the Podfile for declaring the pod from two sources.
   pod 'React-RCTImage', :path => "#{config[:reactNativePath]}/Libraries/Image", :modular_headers => true
 
   use_react_native!(
