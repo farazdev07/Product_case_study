@@ -1,28 +1,19 @@
-import { StatusBar, useColorScheme } from 'react-native';
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import App from '@app/App';
 
-// react-native/jest/setup replaces useColorScheme with a jest.fn.
-const mockedUseColorScheme = jest.mocked(useColorScheme);
-
 describe('App', () => {
-  it('renders the root screen', () => {
+  it('renders the placeholder screen inside the providers', () => {
     render(<App />);
 
-    expect(screen.getByText('Welcome to React Native')).toBeOnTheScreen();
+    expect(screen.getByText('Product Catalog')).toBeOnTheScreen();
+    expect(screen.getByText('Taps: 0')).toBeOnTheScreen();
   });
 
-  it.each([
-    ['light', 'dark-content'],
-    ['dark', 'light-content'],
-  ] as const)(
-    'uses a contrasting status bar for the %s scheme (%s)',
-    (scheme, barStyle) => {
-      mockedUseColorScheme.mockReturnValue(scheme);
+  it('responds to presses', () => {
+    render(<App />);
 
-      render(<App />);
+    fireEvent.press(screen.getByRole('button', { name: 'Tap me' }));
 
-      expect(screen.UNSAFE_getByType(StatusBar).props.barStyle).toBe(barStyle);
-    },
-  );
+    expect(screen.getByText('Taps: 1')).toBeOnTheScreen();
+  });
 });
