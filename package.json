@@ -5,6 +5,7 @@
   "scripts": {
     "android": "react-native run-android",
     "ios": "react-native run-ios",
+    "format:check": "prettier --check src",
     "lint": "eslint src \"*.tsx\" --ext .ts,.tsx --no-error-on-unmatched-pattern",
     "start": "react-native start",
     "test": "jest",
