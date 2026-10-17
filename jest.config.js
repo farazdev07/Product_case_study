@@ -7,7 +7,7 @@ module.exports = {
     '^@shared/(.*)$': '<rootDir>/src/shared/$1',
   },
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|@react-navigation|@shopify/flash-list)/)',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|@react-navigation|@shopify/flash-list|react-redux|immer)/)',
   ],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
