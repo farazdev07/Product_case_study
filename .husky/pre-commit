@@ -1,0 +1,7 @@
+yarn lint-staged
+yarn tsc --noEmit
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR -- '*.ts' '*.tsx')
+if [ -n "$staged" ]; then
+  yarn jest --bail --findRelatedTests $staged
+fi
