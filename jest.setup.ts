@@ -54,3 +54,9 @@ jest.mock('@react-native-community/netinfo', () => {
 
   return { __esModule: true, default: netInfo, ...netInfo };
 });
+
+// SafeAreaProvider renders nothing until the native side reports insets.
+jest.mock(
+  'react-native-safe-area-context',
+  () => jest.requireActual('react-native-safe-area-context/jest/mock').default,
+);
