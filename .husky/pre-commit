@@ -3,5 +3,5 @@ yarn tsc --noEmit
 
 staged=$(git diff --cached --name-only --diff-filter=ACMR -- '*.ts' '*.tsx')
 if [ -n "$staged" ]; then
-  yarn jest --bail --findRelatedTests $staged
+  yarn jest --bail --passWithNoTests --findRelatedTests $staged
 fi
