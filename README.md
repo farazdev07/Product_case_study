@@ -182,7 +182,7 @@ These numbers do not show a smooth list in absolute terms. The emulator renders 
 
 ## 5. Testing
 
-The suite is Jest with React Native Testing Library: 40 suites and 363 tests, with 100% statement, branch, function and line coverage. `jest.config.js` enforces a 70% global floor for all four measures, and CI runs `yarn test --coverage`, so a drop below the floor fails the build. Type-only files, barrels and test helpers are excluded from coverage.
+The suite is Jest with React Native Testing Library: 41 suites and 375 tests, with 100% statement, branch, function and line coverage. `jest.config.js` enforces a 70% global floor for all four measures, and CI runs `yarn test --coverage`, so a drop below the floor fails the build. Type-only files, barrels and test helpers are excluded from coverage.
 
 What is covered, and why those things:
 
@@ -217,6 +217,8 @@ The same functional checks were run on iOS (iPhone 17 simulator, iOS 27.0), driv
 - **Release build, offline.** After loading online, force-quitting and disabling the host network, the relaunch showed the products, the category chips, the saved state of the favourite and the offline banner. A favourite added offline was written to the persisted queue.
 - **Cold start online with a queued action.** Launching with the network available drained the queue.
 
+The app is a universal iOS app. On an iPad (iPad Pro 13-inch M5 simulator, iOS 27.0) the feed lists products in two columns in portrait and three in landscape, the column count following the window width, and the detail screen is a centred column; the same feed, search, filter and detail checks passed there. On a phone the layout is unchanged. Both iPad orientations and a resized window were looked at; split view and Stage Manager sizes other than the one resized window were not.
+
 Two things were not shown on iOS. The "Syncing Queued Actions" bar was not observed, because the simulator never reported the network coming back to the running app (see section 8), and no scroll measurement was taken: the simulator renders on the host and exposes no frame statistics that could be trusted, so no iOS smoothness figure is claimed, consistent with the Android caveat in section 4c.
 
 Running the iOS checks found one layout bug: after a sort or filter change FlashList's scroll anchoring left the list scrolled past the new first results. It is fixed by disabling the anchoring.
@@ -248,7 +250,7 @@ CI (`.github/workflows/ci.yml`) runs on every push and pull request, on Node 22 
 
 ## 8. Known limitations
 
-- **iOS has run on the simulator only, and live reconnect there was not observed.** It has not been run on a physical iPhone. What was observed on the iPhone 17 simulator (iOS 27.0): the offline banner appears within seconds when the host's wifi is turned off, so offline detection works live; after the host's wifi was turned back on, the running app still showed the offline banner after 3 minutes, while the host could reach the API and the same app launched fresh read the correct online state. Android reconnects correctly. Calling `NetInfo.refresh()` when the app returned to the foreground (backgrounded by launching Safari) did not change this and was removed. The cause was not confirmed, so none is claimed, and live reconnect on iOS remains unverified.
+- **iOS has run on simulators only, and live reconnect there was not observed.** It has not been run on a physical iPhone or iPad. What was observed on the iPhone 17 simulator (iOS 27.0): the offline banner appears within seconds when the host's wifi is turned off, so offline detection works live; after the host's wifi was turned back on, the running app still showed the offline banner after 3 minutes, while the host could reach the API and the same app launched fresh read the correct online state. Android reconnects correctly. Calling `NetInfo.refresh()` when the app returned to the foreground (backgrounded by launching Safari) did not change this and was removed. The cause was not confirmed, so none is claimed, and live reconnect on iOS remains unverified.
 - **iOS shows no thumbnails offline.** The image CDN sends `Cache-Control: no-store` on the thumbnails, which the iOS URL cache honours, so nothing is kept for an offline launch. Raising `URLCache` capacity to 50 MB memory and 200 MB disk was tried and made no difference (still no thumbnails, and `Cache.db` unchanged), so it was not kept. Fixing this needs a cache the app controls, such as an image library with its own disk cache, or the server changing the header.
 - **Smoothness is unproven on hardware.** Frame measurements come from a software-rendered emulator on a loaded host and cannot support a claim of 60 fps. The next step is to profile on a mid-range physical device.
 - **The sync target is a stand-in.** `PUT /products/{id}` persists nothing, so delivery is exercised but not stored. A real favourites endpoint would also need idempotency keys, since a request can succeed server-side and fail on the way back, and the retry would then be a duplicate.
