@@ -2270,7 +2270,7 @@ PODS:
     - React-perflogger (= 0.80.3)
     - React-utils (= 0.80.3)
     - SocketRocket
-  - RNScreens (4.24.0):
+  - RNScreens (4.18.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -2298,10 +2298,10 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNScreens/common (= 4.24.0)
+    - RNScreens/common (= 4.18.0)
     - SocketRocket
     - Yoga
-  - RNScreens/common (4.24.0):
+  - RNScreens/common (4.18.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -2648,10 +2648,10 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: bd4d54d31d1a9e2eddff7675bb7628731a42b98c
   ReactCodegen: 8e8c7dc0113d08d218f409fbb2cd3b966b982e11
   ReactCommon: 04362bc6625a80fa21b174f527352db70e5ad06a
-  RNScreens: 7769b3511c8c7245694295a8e9d8ebb93cb4975c
+  RNScreens: f35bcc83b6e3a871635b1c28728e63c9560f159a
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: fb21153542336c6e7c4855022f4a93a286865259
 
-PODFILE CHECKSUM: 6fca398a8c01e969c0b26fcb498c0c16025c9658
+PODFILE CHECKSUM: 2950b7bd8f02cf109dbf1446dde741a3e91ed69c
 
 COCOAPODS: 1.15.2
