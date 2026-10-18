@@ -278,6 +278,7 @@
 					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.faraz.productcatalog;
+				TARGETED_DEVICE_FAMILY = "1,2";
 				PRODUCT_NAME = ProductCatalog;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -305,6 +306,7 @@
 					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.faraz.productcatalog;
+				TARGETED_DEVICE_FAMILY = "1,2";
 				PRODUCT_NAME = ProductCatalog;
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
