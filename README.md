@@ -182,7 +182,7 @@ These numbers do not show a smooth list in absolute terms. The emulator renders 
 
 ## 5. Testing
 
-The suite is Jest with React Native Testing Library: 41 suites and 381 tests, with 100% statement, branch, function and line coverage. `jest.config.js` enforces a 70% global floor for all four measures, and CI runs `yarn test --coverage`, so a drop below the floor fails the build. Type-only files, barrels and test helpers are excluded from coverage.
+The suite is Jest with React Native Testing Library: 41 suites and 384 tests, with 100% statement, branch, function and line coverage. `jest.config.js` enforces a 70% global floor for all four measures, and CI runs `yarn test --coverage`, so a drop below the floor fails the build. Type-only files, barrels and test helpers are excluded from coverage.
 
 What is covered, and why those things:
 
