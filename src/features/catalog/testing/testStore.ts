@@ -7,6 +7,7 @@ import {
   catalogReducer,
   type CatalogState,
 } from '@features/catalog/model/catalogSlice';
+import { favoritesReducer } from '@features/favorites';
 import type { Product } from '@features/catalog/model/types';
 
 export const makeProduct = (id: number): Product => ({
@@ -52,6 +53,7 @@ export const makeStore = (
       [baseApi.reducerPath]: baseApi.reducer,
       catalog: catalogReducer,
       filters: filtersReducer,
+      favorites: favoritesReducer,
     },
     preloadedState: catalog ? { catalog } : undefined,
     middleware: getDefaultMiddleware =>

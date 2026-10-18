@@ -47,6 +47,15 @@ describe('ProductDetailScreen', () => {
     jest.restoreAllMocks();
   });
 
+  it('lets the product be favourited from the detail screen', () => {
+    store = makeStore(makeCatalogState([5]));
+    renderScreen(5);
+
+    fireEvent.press(screen.getByRole('button', { name: 'Add to favorites' }));
+
+    expect(store.getState().favorites.ids).toEqual([5]);
+  });
+
   it('renders a cached product without making a request', () => {
     store = makeStore(makeCatalogState([5]));
     const fetchSpy = stubFetch(() => jsonResponse(makeProduct(5)));

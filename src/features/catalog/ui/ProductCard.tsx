@@ -2,6 +2,7 @@ import { memo, useCallback } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { colors, radii, spacing } from '@shared/config/theme';
 import { Text } from '@shared/ui';
+import { FavoriteButton } from '@features/favorites';
 import { formatCategory, formatPrice } from '@features/catalog/lib/format';
 import type { Product } from '@features/catalog/model/types';
 
@@ -21,41 +22,54 @@ export const ProductCard = memo(function ProductCard({
     [onPress, product.id],
   );
 
+  // The favourite button is a sibling of the pressable area, not a child: a
+  // pressable is a single accessibility element, so a button nested inside it
+  // could not be reached by a screen reader.
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={product.title}
-      onPress={handlePress}
-      style={styles.card}
-    >
-      <Image source={{ uri: product.thumbnail }} style={styles.image} />
-      <View style={styles.details}>
-        <Text variant="subtitle" numberOfLines={2}>
-          {product.title}
-        </Text>
-        <Text variant="caption" color="textSecondary">
-          {formatCategory(product.category)}
-        </Text>
-        <View style={styles.meta}>
-          <Text variant="subtitle">{formatPrice(product.price)}</Text>
-          <Text variant="caption" color="textSecondary">
-            {`${product.rating.toFixed(1)} / 5`}
+    <View style={styles.card}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={product.title}
+        onPress={handlePress}
+        style={styles.main}
+      >
+        <Image source={{ uri: product.thumbnail }} style={styles.image} />
+        <View style={styles.details}>
+          <Text variant="subtitle" numberOfLines={2}>
+            {product.title}
           </Text>
+          <Text variant="caption" color="textSecondary">
+            {formatCategory(product.category)}
+          </Text>
+          <View style={styles.meta}>
+            <Text variant="subtitle">{formatPrice(product.price)}</Text>
+            <Text variant="caption" color="textSecondary">
+              {`${product.rating.toFixed(1)} / 5`}
+            </Text>
+          </View>
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+      {/* Id only: the button owns its state so this memo stays valid. */}
+      <FavoriteButton productId={product.id} />
+    </View>
   );
 });
 
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
-    gap: spacing.md,
+    alignItems: 'center',
+    gap: spacing.sm,
     padding: spacing.sm,
     borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
+  },
+  main: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: spacing.md,
   },
   image: {
     width: 88,

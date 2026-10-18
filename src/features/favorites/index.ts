@@ -8,3 +8,4 @@ export {
   loadPersistedFavorites,
   registerFavoritesPersistence,
 } from '@features/favorites/model/persistence';
+export { FavoriteButton } from '@features/favorites/ui/FavoriteButton';

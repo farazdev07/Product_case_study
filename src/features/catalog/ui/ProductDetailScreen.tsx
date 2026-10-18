@@ -8,6 +8,7 @@ import {
   selectProductById,
   type CatalogRootState,
 } from '@features/catalog/model/catalogSlice';
+import { FavoriteButton } from '@features/favorites';
 
 type Props = {
   productId: number;
@@ -63,6 +64,9 @@ export function ProductDetailScreen({ productId }: Props) {
             1,
           )} / 5`}</Text>
         </View>
+        <View style={styles.favorite}>
+          <FavoriteButton productId={product.id} />
+        </View>
         <Text color="textSecondary">
           {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
         </Text>
@@ -87,6 +91,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  favorite: {
+    alignItems: 'flex-start',
   },
   centered: {
     flex: 1,
