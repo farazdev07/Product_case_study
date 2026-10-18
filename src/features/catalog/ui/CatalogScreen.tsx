@@ -59,6 +59,10 @@ export function CatalogScreen({ onProductPress }: Props) {
     [onProductPress],
   );
 
+  const clearAll = useCallback(() => {
+    dispatch(clearFilters());
+  }, [dispatch]);
+
   const emptyState = (
     <EmptyFeed
       state={getEmptyState({
@@ -71,7 +75,7 @@ export function CatalogScreen({ onProductPress }: Props) {
       })}
       onRetry={retry}
       onLoadMore={loadMore}
-      onClearFilters={() => dispatch(clearFilters())}
+      onClearFilters={clearAll}
     />
   );
 

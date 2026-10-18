@@ -1,3 +1,4 @@
+import { Image } from 'react-native';
 import { Provider } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
@@ -115,5 +116,18 @@ describe('ProductDetailScreen', () => {
     renderScreen(3);
 
     expect(screen.getByText('Out of stock')).toBeOnTheScreen();
+  });
+
+  it('falls back to the thumbnail when a product has no images', () => {
+    store = makeStore({
+      ...makeCatalogState([4]),
+      entities: { 4: { ...makeProduct(4), images: [] } },
+    });
+
+    renderScreen(4);
+
+    expect(screen.UNSAFE_getByType(Image).props.source).toEqual({
+      uri: 'https://example.test/4.webp',
+    });
   });
 });

@@ -408,8 +408,9 @@ describe('CatalogScreen', () => {
       act(() => jest.advanceTimersByTime(SEARCH_DEBOUNCE_MS));
       await screen.findByText('No results for "zzz".');
 
+      // The filter bar has its own clear-all; the last match is the empty state's.
       fireEvent.press(
-        screen.getAllByRole('button', { name: 'Clear all filters' })[0]!,
+        screen.getAllByRole('button', { name: 'Clear all filters' }).at(-1)!,
       );
 
       expect(await screen.findByText('Product 1')).toBeOnTheScreen();
