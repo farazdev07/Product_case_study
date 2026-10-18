@@ -95,3 +95,15 @@ To learn more about React Native, take a look at the following resources:
 - [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
 - [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
 - [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+
+# Offline favourites queue
+
+The brief asks for a "Syncing Queued Actions" banner and an offline queue, but
+dummyjson is read-only, so the catalog has nothing to queue. Favourites are the
+local action that fills that gap: toggling one updates the UI at once, is
+appended to a persisted queue, and is delivered when the device is online.
+
+dummyjson has no favourites resource. The queue syncs through
+`PUT /products/{id}`, which returns a simulated update and stores nothing. It
+stands in for a real favourites API; it demonstrates ordered delivery, retry
+with backoff and persistence across launches, not server-side storage.
