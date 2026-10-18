@@ -5,8 +5,6 @@ import ReactAppDependencyProvider
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
-  var window: UIWindow?
-
   var reactNativeDelegate: ReactNativeDelegate?
   var reactNativeFactory: RCTReactNativeFactory?
 
@@ -21,14 +19,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     reactNativeDelegate = delegate
     reactNativeFactory = factory
 
-    window = UIWindow(frame: UIScreen.main.bounds)
-
-    factory.startReactNative(
-      withModuleName: "ProductCatalog",
-      in: window,
-      launchOptions: launchOptions
-    )
-
+    // The window is created in SceneDelegate: iOS 27 aborts apps that do not
+    // adopt the UIScene lifecycle, so React Native starts once a scene exists.
     return true
   }
 }
