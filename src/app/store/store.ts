@@ -1,4 +1,8 @@
-import { configureStore, createListenerMiddleware } from '@reduxjs/toolkit';
+import {
+  combineReducers,
+  configureStore,
+  createListenerMiddleware,
+} from '@reduxjs/toolkit';
 import { baseApi } from '@shared/api/baseApi';
 import {
   catalogReducer,
@@ -7,6 +11,11 @@ import {
   registerCatalogPersistence,
   registerFeedReset,
 } from '@features/catalog';
+import {
+  favoritesReducer,
+  loadPersistedFavorites,
+  registerFavoritesPersistence,
+} from '@features/favorites';
 
 // Features register persistence listeners against this instance, so it is
 // created here and shared rather than owned by any one feature.
@@ -17,14 +26,24 @@ export const listenerMiddleware = createListenerMiddleware();
 // re-render; MMKV's synchronous API is the reason it was chosen over
 // AsyncStorage.
 const persistedCatalog = loadPersistedCatalog();
+// The queue gets the same treatment: a cold start must find it intact.
+const persistedFavorites = loadPersistedFavorites();
+
+const rootReducer = combineReducers({
+  [baseApi.reducerPath]: baseApi.reducer,
+  catalog: catalogReducer,
+  filters: filtersReducer,
+  favorites: favoritesReducer,
+});
+
+const preloadedState: Partial<ReturnType<typeof rootReducer>> = {
+  ...(persistedCatalog && { catalog: persistedCatalog }),
+  ...(persistedFavorites && { favorites: persistedFavorites }),
+};
 
 export const store = configureStore({
-  reducer: {
-    [baseApi.reducerPath]: baseApi.reducer,
-    catalog: catalogReducer,
-    filters: filtersReducer,
-  },
-  preloadedState: persistedCatalog ? { catalog: persistedCatalog } : undefined,
+  reducer: rootReducer,
+  preloadedState,
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware()
       .prepend(listenerMiddleware.middleware)
@@ -33,6 +52,7 @@ export const store = configureStore({
 
 registerCatalogPersistence(listenerMiddleware);
 registerFeedReset(listenerMiddleware);
+registerFavoritesPersistence(listenerMiddleware);
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

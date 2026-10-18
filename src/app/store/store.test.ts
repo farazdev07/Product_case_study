@@ -45,14 +45,20 @@ describe('store hydration', () => {
 
   // The store hydrates when its module is evaluated, so each case seeds
   // storage and then loads a fresh copy of the module.
-  const loadStoreWith = (seed: (set: (value: unknown) => void) => void) => {
+  const loadStoreWith = (
+    seed: (set: (value: unknown) => void) => void,
+    key = 'catalog',
+  ) => {
     let hydrated: unknown;
     jest.isolateModules(() => {
       const { storage } = jest.requireActual('@shared/storage/storage');
-      seed(value => storage.set('catalog', value));
+      seed(value => storage.set(key, value));
       hydrated = jest.requireActual('@app/store/store').store.getState();
     });
-    return hydrated as { catalog: typeof persisted };
+    return hydrated as {
+      catalog: typeof persisted;
+      favorites: { ids: number[]; queue: unknown[]; status: string };
+    };
   };
 
   beforeEach(() => {
@@ -82,5 +88,21 @@ describe('store hydration', () => {
     );
 
     expect(state.catalog).toEqual(persisted);
+  });
+
+  it('starts with the persisted favourites and queue, idle', () => {
+    const queue = [
+      { id: 'a', productId: 4, type: 'add', createdAt: NOW, attempts: 1 },
+    ];
+
+    const state = loadStoreWith(set => set({ ids: [4], queue }), 'favorites');
+
+    expect(state.favorites).toEqual({ ids: [4], queue, status: 'idle' });
+  });
+
+  it('starts with no favourites when nothing is persisted', () => {
+    const state = loadStoreWith(() => {});
+
+    expect(state.favorites).toEqual({ ids: [], queue: [], status: 'idle' });
   });
 });
