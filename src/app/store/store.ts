@@ -2,8 +2,10 @@ import { configureStore, createListenerMiddleware } from '@reduxjs/toolkit';
 import { baseApi } from '@shared/api/baseApi';
 import {
   catalogReducer,
+  filtersReducer,
   loadPersistedCatalog,
   registerCatalogPersistence,
+  registerFeedReset,
 } from '@features/catalog';
 
 // Features register persistence listeners against this instance, so it is
@@ -20,6 +22,7 @@ export const store = configureStore({
   reducer: {
     [baseApi.reducerPath]: baseApi.reducer,
     catalog: catalogReducer,
+    filters: filtersReducer,
   },
   preloadedState: persistedCatalog ? { catalog: persistedCatalog } : undefined,
   middleware: getDefaultMiddleware =>
@@ -29,6 +32,7 @@ export const store = configureStore({
 });
 
 registerCatalogPersistence(listenerMiddleware);
+registerFeedReset(listenerMiddleware);
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

@@ -1,6 +1,7 @@
 // Shared by the catalog's tests only; nothing in the app imports this.
 import { configureStore } from '@reduxjs/toolkit';
 import { baseApi } from '@shared/api/baseApi';
+import { filtersReducer } from '@features/catalog/model/filtersSlice';
 import {
   catalogReducer,
   type CatalogState,
@@ -39,6 +40,7 @@ export const makeStore = (catalog?: CatalogState) =>
     reducer: {
       [baseApi.reducerPath]: baseApi.reducer,
       catalog: catalogReducer,
+      filters: filtersReducer,
     },
     preloadedState: catalog ? { catalog } : undefined,
     middleware: getDefaultMiddleware =>
