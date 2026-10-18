@@ -7,6 +7,7 @@ import {
   useGetProductsQuery,
   useSearchProductsQuery,
 } from '@features/catalog/api/catalogApi';
+import { isNetworkError } from '@features/catalog/lib/emptyState';
 import {
   selectFeedIds,
   selectFeedKey,
@@ -115,7 +116,7 @@ export function useProductFeed() {
       : source.kind === 'category'
       ? category
       : all;
-  const { isFetching, isError, refetch } = active;
+  const { isFetching, isError, error, refetch } = active;
   const total = feedMatches ? feedTotal : 0;
 
   // The next page starts after what is already loaded, which after hydration is
@@ -139,6 +140,8 @@ export function useProductFeed() {
     products,
     isFetching,
     isError,
+    isNetworkError: isError && isNetworkError(error),
+    hasMore: loaded < total,
     isLoadingMore: isFetching && skip > 0,
     isRefreshing: isFetching && skip === 0 && products.length > 0,
     loadMore,

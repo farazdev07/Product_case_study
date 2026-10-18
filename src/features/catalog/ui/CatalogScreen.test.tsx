@@ -10,7 +10,10 @@ import {
 } from '@testing-library/react-native';
 import { PAGE_SIZE, SEARCH_DEBOUNCE_MS } from '@shared/config/constants';
 import { CatalogScreen } from '@features/catalog/ui/CatalogScreen';
-import { clearFilters } from '@features/catalog/model/filtersSlice';
+import {
+  clearFilters,
+  setSearchTerm,
+} from '@features/catalog/model/filtersSlice';
 import {
   jsonResponse,
   makeCatalogState,
@@ -295,6 +298,178 @@ describe('CatalogScreen', () => {
 
       expect(screen.getByText('Product 1')).toBeOnTheScreen();
       expect(productRequests()).toEqual(['/products']);
+    });
+  });
+
+  describe('empty states', () => {
+    const goOffline = () =>
+      jest
+        .spyOn(globalThis, 'fetch')
+        .mockRejectedValue(new TypeError('Network request failed'));
+    const press = (name: string) =>
+      fireEvent.press(screen.getByRole('button', { name }));
+    const emptyOfProducts = (total: number) =>
+      jsonResponse({ products: [], total, skip: 0, limit: PAGE_SIZE });
+
+    beforeEach(() => {
+      store = makeStore(undefined, { feedReset: true });
+    });
+
+    it('says the device is offline when nothing is saved yet', async () => {
+      goOffline();
+
+      renderScreen();
+
+      expect(await screen.findByText('You are offline')).toBeOnTheScreen();
+      expect(
+        screen.getByText(
+          'No products are saved on this device yet. Connect to the internet to load them.',
+        ),
+      ).toBeOnTheScreen();
+      expect(screen.queryByText('No products found.')).not.toBeOnTheScreen();
+    });
+
+    it('does not call a server failure offline', async () => {
+      stubFetch(() => jsonResponse({ message: 'down' }, 500));
+
+      renderScreen();
+
+      expect(
+        await screen.findByText('Could not load products.'),
+      ).toBeOnTheScreen();
+      expect(screen.queryByText('You are offline')).not.toBeOnTheScreen();
+    });
+
+    it('recovers from the offline state when the retry succeeds', async () => {
+      const fetchSpy = goOffline();
+      renderScreen();
+      await screen.findByText('You are offline');
+
+      fetchSpy.mockRestore();
+      stubFetch(pagedCatalog(50));
+      press('Retry');
+
+      expect(await screen.findByText('Product 1')).toBeOnTheScreen();
+    });
+
+    it('explains that searching needs a connection when a search is offline', async () => {
+      store = makeStore(undefined, { feedReset: true });
+      store.dispatch(setSearchTerm('phone'));
+      goOffline();
+
+      renderScreen();
+
+      expect(
+        await screen.findByText('Searching and filtering need a connection.'),
+      ).toBeOnTheScreen();
+    });
+
+    it('keeps cached products on screen when launched offline', async () => {
+      store = makeStore(makeCatalogState([1, 2, 3], 50));
+      goOffline();
+
+      renderScreen();
+
+      expect(
+        await screen.findByText('Could not load products.'),
+      ).toBeOnTheScreen();
+      expect(screen.getByText('Product 1')).toBeOnTheScreen();
+      expect(screen.queryByText('You are offline')).not.toBeOnTheScreen();
+    });
+
+    it('distinguishes no results for a search from an empty catalogue', async () => {
+      stubFetch(url =>
+        url.pathname === '/products/search'
+          ? emptyOfProducts(0)
+          : pagedCatalog(50)(url),
+      );
+      renderScreen();
+      await screen.findByText('Product 1');
+
+      fireEvent.changeText(screen.getByLabelText('Search products'), 'zzz');
+      act(() => jest.advanceTimersByTime(SEARCH_DEBOUNCE_MS));
+
+      expect(
+        await screen.findByText('No results for "zzz".'),
+      ).toBeOnTheScreen();
+      expect(screen.queryByText('No products found.')).not.toBeOnTheScreen();
+      expect(screen.queryByText('You are offline')).not.toBeOnTheScreen();
+    });
+
+    it('offers to clear the filters from a no-results state', async () => {
+      stubFetch(url =>
+        url.pathname === '/products/search'
+          ? emptyOfProducts(0)
+          : pagedCatalog(50)(url),
+      );
+      renderScreen();
+      await screen.findByText('Product 1');
+      fireEvent.changeText(screen.getByLabelText('Search products'), 'zzz');
+      act(() => jest.advanceTimersByTime(SEARCH_DEBOUNCE_MS));
+      await screen.findByText('No results for "zzz".');
+
+      fireEvent.press(
+        screen.getAllByRole('button', { name: 'Clear all filters' })[0]!,
+      );
+
+      expect(await screen.findByText('Product 1')).toBeOnTheScreen();
+    });
+
+    it('says filters match nothing when every product is already loaded', async () => {
+      stubFetch(url =>
+        url.pathname === '/products/categories'
+          ? jsonResponse([])
+          : jsonResponse({
+              products: [{ ...makeProduct(1), price: 400 }],
+              total: 1,
+              skip: 0,
+              limit: PAGE_SIZE,
+            }),
+      );
+      renderScreen();
+      await screen.findByText('Product 1');
+
+      press('More filters');
+      press('Under $25');
+
+      expect(
+        screen.getByText('No products match these filters.'),
+      ).toBeOnTheScreen();
+    });
+
+    it('keeps loading pages while the loaded ones have no match, instead of reporting none', async () => {
+      const requested: number[] = [];
+      stubFetch(url => {
+        if (url.pathname === '/products/categories') {
+          return jsonResponse([]);
+        }
+        const skip = Number(url.searchParams.get('skip'));
+        requested.push(skip);
+        return jsonResponse({
+          products: [
+            {
+              ...makeProduct(skip + 1),
+              title: `Item ${skip + 1}`,
+              price: skip === 0 ? 400 : 10,
+            },
+          ],
+          total: 2,
+          skip,
+          limit: PAGE_SIZE,
+        });
+      });
+      renderScreen();
+      await screen.findByText('Item 1');
+
+      press('More filters');
+      press('Under $25');
+
+      expect(await screen.findByText('Item 2')).toBeOnTheScreen();
+      expect(screen.queryByText('Item 1')).not.toBeOnTheScreen();
+      expect(
+        screen.queryByText('No products match these filters.'),
+      ).not.toBeOnTheScreen();
+      expect(requested).toEqual([0, 1]);
     });
   });
 });

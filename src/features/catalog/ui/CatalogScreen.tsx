@@ -1,10 +1,18 @@
 import { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { FlashList, type ListRenderItem } from '@shopify/flash-list';
+import { useDispatch, useSelector } from 'react-redux';
 import { spacing } from '@shared/config/theme';
 import { Button, Screen, Spinner, Text } from '@shared/ui';
+import { getEmptyState } from '@features/catalog/lib/emptyState';
 import { useProductFeed } from '@features/catalog/lib/useProductFeed';
+import {
+  clearFilters,
+  selectActiveFilterCount,
+  selectSearchTerm,
+} from '@features/catalog/model/filtersSlice';
 import type { Product } from '@features/catalog/model/types';
+import { EmptyFeed } from '@features/catalog/ui/EmptyFeed';
 import { FilterBar } from '@features/catalog/ui/FilterBar';
 import { ProductCard } from '@features/catalog/ui/ProductCard';
 
@@ -32,12 +40,17 @@ export function CatalogScreen({ onProductPress }: Props) {
     products,
     isFetching,
     isError,
+    isNetworkError,
     isLoadingMore,
     isRefreshing,
+    hasMore,
     loadMore,
     refresh,
     retry,
   } = useProductFeed();
+  const dispatch = useDispatch();
+  const searchTerm = useSelector(selectSearchTerm);
+  const hasActiveFilters = useSelector(selectActiveFilterCount) > 0;
 
   // A stable renderItem keeps FlashList from re-rendering every visible row
   // when only the footer or refresh state changes.
@@ -46,16 +59,20 @@ export function CatalogScreen({ onProductPress }: Props) {
     [onProductPress],
   );
 
-  const emptyState = isFetching ? (
-    <View style={styles.message}>
-      <Spinner />
-    </View>
-  ) : isError ? (
-    <RetryMessage onRetry={retry} />
-  ) : (
-    <View style={styles.message}>
-      <Text color="textSecondary">No products found.</Text>
-    </View>
+  const emptyState = (
+    <EmptyFeed
+      state={getEmptyState({
+        isFetching,
+        isError,
+        isNetworkError,
+        hasMore,
+        searchTerm,
+        hasActiveFilters,
+      })}
+      onRetry={retry}
+      onLoadMore={loadMore}
+      onClearFilters={() => dispatch(clearFilters())}
+    />
   );
 
   const footer = isLoadingMore ? (
