@@ -38,14 +38,23 @@ const requestedUrl = (fetchSpy: jest.SpyInstance): URL =>
   new URL((fetchSpy.mock.calls[0][0] as Request).url);
 
 describe('catalogApi', () => {
+  let store: ReturnType<typeof makeStore>;
+
+  beforeEach(() => {
+    store = makeStore();
+  });
+
   afterEach(() => {
+    // Cancels RTK Query's cache-expiry timers, which would otherwise keep the
+    // Jest process alive for their full 60 seconds.
+    store.dispatch(baseApi.util.resetApiState());
     jest.restoreAllMocks();
   });
 
   it('requests a page of products', async () => {
     const fetchSpy = stubFetch({ products: [], total: 0, skip: 20, limit: 20 });
 
-    await makeStore().dispatch(
+    await store.dispatch(
       catalogApi.endpoints.getProducts.initiate(
         { limit: 20, skip: 20 },
         { subscribe: false },
@@ -63,7 +72,7 @@ describe('catalogApi', () => {
   it('searches products with the query', async () => {
     const fetchSpy = stubFetch({ products: [], total: 0, skip: 0, limit: 20 });
 
-    await makeStore().dispatch(
+    await store.dispatch(
       catalogApi.endpoints.searchProducts.initiate(
         { q: 'phone', limit: 20, skip: 0 },
         { subscribe: false },
@@ -78,7 +87,7 @@ describe('catalogApi', () => {
   it('requests the category list', async () => {
     const fetchSpy = stubFetch([{ slug: 'beauty', name: 'Beauty' }]);
 
-    const result = await makeStore().dispatch(
+    const result = await store.dispatch(
       catalogApi.endpoints.getCategories.initiate(undefined, {
         subscribe: false,
       }),
@@ -91,7 +100,7 @@ describe('catalogApi', () => {
   it('requests a single product by id', async () => {
     const fetchSpy = stubFetch(product(7));
 
-    await makeStore().dispatch(
+    await store.dispatch(
       catalogApi.endpoints.getProductById.initiate(7, { subscribe: false }),
     );
 
@@ -105,7 +114,6 @@ describe('catalogApi', () => {
       skip: 0,
       limit: 20,
     });
-    const store = makeStore();
 
     await store.dispatch(
       catalogApi.endpoints.getProducts.initiate(
@@ -125,7 +133,6 @@ describe('catalogApi', () => {
 
   it('tags a product detail with its own id only', async () => {
     stubFetch(product(5));
-    const store = makeStore();
 
     await store.dispatch(
       catalogApi.endpoints.getProductById.initiate(5, { subscribe: false }),
@@ -141,7 +148,6 @@ describe('catalogApi', () => {
 
   it('tags a search the same way as a list', async () => {
     stubFetch({ products: [product(9)], total: 1, skip: 0, limit: 20 });
-    const store = makeStore();
 
     await store.dispatch(
       catalogApi.endpoints.searchProducts.initiate(
