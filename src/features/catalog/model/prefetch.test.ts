@@ -24,8 +24,12 @@ const makeStore = () => {
   });
 };
 
-const thumbnailsOf = (ids: number[]) =>
-  ids.map(id => makeProduct(id).thumbnail);
+// Each product contributes its list thumbnail, then its detail image.
+const imagesOf = (ids: number[]) =>
+  ids.flatMap(id => {
+    const { thumbnail, images } = makeProduct(id);
+    return [thumbnail, ...images];
+  });
 
 describe('registerThumbnailPrefetch', () => {
   let store: ReturnType<typeof makeStore>;
@@ -48,13 +52,13 @@ describe('registerThumbnailPrefetch', () => {
       catalogApi.endpoints.getProducts.initiate(arg, { subscribe: false }),
     );
 
-  it('prefetches the thumbnail of every product on a fetched page', async () => {
+  it('prefetches the thumbnail and the detail image of every product on a fetched page', async () => {
     stubFetch(pagedCatalog(10));
 
     await load({ limit: 3, skip: 0 });
 
     expect(prefetch.mock.calls.map(([url]) => url)).toEqual(
-      thumbnailsOf([1, 2, 3]),
+      imagesOf([1, 2, 3]),
     );
   });
 
@@ -65,7 +69,7 @@ describe('registerThumbnailPrefetch', () => {
     await load({ limit: 3, skip: 3 });
 
     expect(prefetch.mock.calls.map(([url]) => url)).toEqual(
-      thumbnailsOf([1, 2, 3, 4, 5, 6]),
+      imagesOf([1, 2, 3, 4, 5, 6]),
     );
   });
 
@@ -85,7 +89,32 @@ describe('registerThumbnailPrefetch', () => {
       ),
     );
 
-    expect(prefetch).toHaveBeenCalledTimes(4);
+    expect(prefetch).toHaveBeenCalledTimes(8);
+  });
+
+  it('requests an image once when the detail image is the thumbnail', async () => {
+    const same = {
+      ...makeProduct(1),
+      images: [makeProduct(1).thumbnail],
+    };
+    stubFetch(() =>
+      jsonResponse({ products: [same], total: 1, skip: 0, limit: 1 }),
+    );
+
+    await load({ limit: 1, skip: 0 });
+
+    expect(prefetch.mock.calls.map(([url]) => url)).toEqual([same.thumbnail]);
+  });
+
+  it('prefetches only the thumbnail when a product has no images', async () => {
+    const bare = { ...makeProduct(1), images: [] };
+    stubFetch(() =>
+      jsonResponse({ products: [bare], total: 1, skip: 0, limit: 1 }),
+    );
+
+    await load({ limit: 1, skip: 0 });
+
+    expect(prefetch.mock.calls.map(([url]) => url)).toEqual([bare.thumbnail]);
   });
 
   it('does not prefetch for other endpoints', async () => {
