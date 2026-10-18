@@ -25,7 +25,7 @@ export function ProductDetailScreen({ productId }: Props) {
 
   if (!product) {
     return (
-      <Screen>
+      <Screen belowHeader>
         <View style={styles.centered}>
           {isError ? (
             <>
@@ -41,7 +41,7 @@ export function ProductDetailScreen({ productId }: Props) {
   }
 
   return (
-    <Screen>
+    <Screen belowHeader>
       <ScrollView contentContainerStyle={styles.content}>
         <Image
           source={{ uri: product.images[0] ?? product.thumbnail }}

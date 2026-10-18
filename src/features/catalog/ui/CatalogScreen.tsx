@@ -66,7 +66,7 @@ export function CatalogScreen({ onProductPress }: Props) {
   ) : null;
 
   return (
-    <Screen>
+    <Screen belowHeader>
       <FlashList
         testID="product-feed"
         data={products}
