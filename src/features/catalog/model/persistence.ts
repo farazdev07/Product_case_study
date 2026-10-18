@@ -31,6 +31,7 @@ const isPersistedEntry = (
     typeof data.entities === 'object' &&
     data.entities !== null &&
     Array.isArray(data.feedIds) &&
+    (typeof data.feedKey === 'string' || data.feedKey === null) &&
     typeof data.total === 'number'
   );
 };

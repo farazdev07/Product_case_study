@@ -49,6 +49,13 @@ describe('loadPersistedCatalog', () => {
     ['a non-object', 42],
     ['an entry without data', { cachedAt: NOW }],
     ['data of the wrong shape', { cachedAt: NOW, data: { ids: 'nope' } }],
+    [
+      'data from before feeds had a source',
+      {
+        cachedAt: NOW,
+        data: { ...catalogState, feedKey: undefined },
+      },
+    ],
     ['an entry without a timestamp', { data: catalogState }],
   ])('returns undefined for %s', (_, value) => {
     storage.set('catalog', value);

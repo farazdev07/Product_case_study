@@ -2,6 +2,7 @@ import { catalogApi } from '@features/catalog/api/catalogApi';
 import {
   feedCleared,
   selectFeedIds,
+  selectFeedKey,
   selectFeedProducts,
   selectFeedTotal,
   selectProductById,
@@ -145,5 +146,65 @@ describe('catalogSlice', () => {
     store = makeStore({ ...makeCatalogState([1]), feedIds: [1, 99] });
 
     expect(selectFeedProducts(store.getState()).map(p => p.id)).toEqual([1]);
+  });
+
+  describe('feed identity', () => {
+    const loadSearchPage = (q: string, skip: number) =>
+      store.dispatch(
+        catalogApi.endpoints.searchProducts.initiate(
+          { q, limit: 2, skip },
+          { subscribe: false, forceRefetch: true },
+        ),
+      );
+
+    it('records which source produced the feed', async () => {
+      await loadPage(0);
+      expect(selectFeedKey(store.getState())).toBe('all');
+
+      await loadSearchPage('phone', 0);
+      expect(selectFeedKey(store.getState())).toBe('search:phone');
+
+      await store.dispatch(
+        catalogApi.endpoints.getProductsByCategory.initiate(
+          { slug: 'beauty', limit: 2, skip: 0 },
+          { subscribe: false },
+        ),
+      );
+      expect(selectFeedKey(store.getState())).toBe('category:beauty');
+    });
+
+    it('appends later pages of the same source', async () => {
+      await loadSearchPage('phone', 0);
+      await loadSearchPage('phone', 2);
+
+      expect(selectFeedIds(store.getState())).toEqual([1, 2, 3, 4]);
+    });
+
+    it('does not append a late page of a source that was replaced', async () => {
+      await loadPage(0);
+      await loadSearchPage('phone', 0);
+
+      await loadPage(2);
+
+      expect(selectFeedIds(store.getState())).toEqual([1, 2]);
+      expect(selectFeedKey(store.getState())).toBe('search:phone');
+    });
+
+    it('still caches the products of a late page', async () => {
+      await loadPage(0);
+      await loadSearchPage('phone', 0);
+
+      await loadPage(4);
+
+      expect(selectProductById(store.getState(), 5)).toBeDefined();
+    });
+
+    it('forgets the source when the feed is cleared', async () => {
+      await loadPage(0);
+
+      store.dispatch(feedCleared());
+
+      expect(selectFeedKey(store.getState())).toBeNull();
+    });
   });
 });

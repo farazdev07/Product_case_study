@@ -38,6 +38,7 @@ describe('store hydration', () => {
       },
     },
     feedIds: [1],
+    feedKey: 'all',
     total: 5,
     lastFetchedAt: NOW,
   };

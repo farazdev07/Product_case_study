@@ -13,12 +13,14 @@ import {
   catalogApi,
   type ProductsResponse,
 } from '@features/catalog/api/catalogApi';
+import { feedKeys } from '@features/catalog/model/feedSource';
 import type { Product } from '@features/catalog/model/types';
 
 const productsAdapter = createEntityAdapter<Product>();
 
 const initialState = productsAdapter.getInitialState({
   feedIds: [] as number[],
+  feedKey: null as string | null,
   total: 0,
   lastFetchedAt: null as number | null,
 });
@@ -31,16 +33,25 @@ type PageAction = {
   meta: { arg: { originalArgs: { skip: number } }; fulfilledTimeStamp: number };
 };
 
-const applyPage = (state: CatalogState, { payload, meta }: PageAction) => {
+const applyPage = (
+  state: CatalogState,
+  { payload, meta }: PageAction,
+  feedKey: string,
+) => {
   productsAdapter.upsertMany(state, payload.products);
   const pageIds = payload.products.map(product => product.id);
 
   if (meta.arg.originalArgs.skip === 0) {
     state.feedIds = pageIds;
-  } else {
+    state.feedKey = feedKey;
+  } else if (state.feedKey === feedKey) {
     // A refetched or overlapping page must not duplicate rows in the list.
     const known = new Set(state.feedIds);
     state.feedIds.push(...pageIds.filter(id => !known.has(id)));
+  } else {
+    // A later page of a query that has since been replaced. Its products are
+    // worth caching, but they do not belong in the current feed.
+    return;
   }
 
   state.total = payload.total;
@@ -53,16 +64,33 @@ const catalogSlice = createSlice({
   reducers: {
     feedCleared(state) {
       state.feedIds = [];
+      state.feedKey = null;
       state.total = 0;
     },
   },
   extraReducers: builder => {
     builder
-      .addMatcher(catalogApi.endpoints.getProducts.matchFulfilled, applyPage)
-      .addMatcher(catalogApi.endpoints.searchProducts.matchFulfilled, applyPage)
+      .addMatcher(
+        catalogApi.endpoints.getProducts.matchFulfilled,
+        (state, action) => applyPage(state, action, feedKeys.all),
+      )
+      .addMatcher(
+        catalogApi.endpoints.searchProducts.matchFulfilled,
+        (state, action) =>
+          applyPage(
+            state,
+            action,
+            feedKeys.search(action.meta.arg.originalArgs.q),
+          ),
+      )
       .addMatcher(
         catalogApi.endpoints.getProductsByCategory.matchFulfilled,
-        applyPage,
+        (state, action) =>
+          applyPage(
+            state,
+            action,
+            feedKeys.category(action.meta.arg.originalArgs.slug),
+          ),
       )
       .addMatcher(
         catalogApi.endpoints.getProductById.matchFulfilled,
@@ -83,6 +111,7 @@ const entitySelectors = productsAdapter.getSelectors<CatalogRootState>(
 export const selectProductById = entitySelectors.selectById;
 
 export const selectFeedIds = (state: CatalogRootState) => state.catalog.feedIds;
+export const selectFeedKey = (state: CatalogRootState) => state.catalog.feedKey;
 export const selectFeedTotal = (state: CatalogRootState) => state.catalog.total;
 export const selectLastFetchedAt = (state: CatalogRootState) =>
   state.catalog.lastFetchedAt;

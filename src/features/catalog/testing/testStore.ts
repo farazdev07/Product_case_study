@@ -29,6 +29,7 @@ export const makeCatalogState = (
   ids,
   entities: Object.fromEntries(ids.map(id => [id, makeProduct(id)])),
   feedIds: ids,
+  feedKey: 'all',
   total,
   lastFetchedAt,
 });
