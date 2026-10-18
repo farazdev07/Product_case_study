@@ -49,13 +49,29 @@ To run a debug build while the device is offline, point the app at Metro through
 
 ### iOS
 
+Verified with Xcode 27.0 (27A266a), CocoaPods 1.15.2 and the iPhone 17 simulator on iOS 27.0.
+
 ```sh
 bundle install
 cd ios && bundle exec pod install && cd ..
-yarn ios
+yarn ios --simulator "iPhone 17"
 ```
 
-`pod install` and React Native codegen complete. The iOS target has not been compiled or run; see section 8.
+Two changes to the native project were required for this toolchain, and both are committed:
+
+- **`fmt` is compiled as C++17.** The `fmt` 11.0.2 pod pinned by React Native 0.80 fails to build under the clang in Xcode 27 when compiled as C++20 (its `consteval` format-string checks are rejected). The Podfile `post_install` hook sets `CLANG_CXX_LANGUAGE_STANDARD = c++17` for that one pod.
+- **The app adopts the UIScene lifecycle.** iOS 27 traps at launch (`EXC_BREAKPOINT` in `UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption`) when an app has no scene configuration. `Info.plist` declares a scene manifest and `SceneDelegate.swift` starts React Native in the window scene.
+
+On the author's machine `yarn ios` could not open the Simulator app (this Xcode installation has no `Simulator.app`), so the build and launch were done directly:
+
+```sh
+xcodebuild -workspace ios/ProductCatalog.xcworkspace -scheme ProductCatalog \
+  -configuration Debug -destination "platform=iOS Simulator,name=iPhone 17" build
+xcrun simctl install booted <DerivedData>/Build/Products/Debug-iphonesimulator/ProductCatalog.app
+xcrun simctl launch booted com.faraz.productcatalog
+```
+
+A release build for the simulator (`-configuration Release`) embeds the bundle as `main.jsbundle`; it was used for the offline checks, which a debug build cannot do because it loads its bundle from Metro. The New Architecture is active on iOS: at startup the JavaScript runtime reports `nativeFabricUIManager` and `RN$Bridgeless` present and Hermes in use.
 
 ### Known environment issue: NDK
 
@@ -173,6 +189,19 @@ Device tests were also run by hand. The sequence below was run on the Pixel_8_AP
 
 The cold-start check was repeated on a release build, twice: once with a fresh cache and once with the cache older than the TTL (the TTL was temporarily set to 10 seconds and restored). In both cases the products and category chips rendered offline; at the end of the cached list the footer showed "Could not load products." with a Retry button, and thumbnails of products the device had never displayed were blank, because images are not cached by the app.
 
+The same functional checks were run on iOS (iPhone 17 simulator, iOS 27.0), driven by an XCUITest harness kept outside the repository:
+
+- **Feed and paging.** The feed loads with images, and scrolling fetched further pages (60 products in the persisted feed after the run).
+- **Search.** A debounced search for "phone" returns the matching products and a search with no match shows `No results for "..."`.
+- **Filters.** Category, sort, price and rating chips applied together (Beauty, price high to low, under $25, 4 and up gave Powder Canister, Red Lipstick and Red Nail Polish in that order), and "Clear all" restored the unfiltered list.
+- **Detail and favourites.** The detail screen rendered the full product from the cache; the favourite toggle worked from the list and the detail screen and survived a relaunch.
+- **Release build, offline.** After loading online, force-quitting and disabling the host network, the relaunch showed the products, the category chips, the saved state of the favourite and the offline banner. A favourite added offline was written to the persisted queue.
+- **Cold start online with a queued action.** Launching with the network available drained the queue.
+
+Two things were not shown on iOS. The "Syncing Queued Actions" bar was not observed, because the simulator never reported the network coming back to the running app (see section 8), and no scroll measurement was taken: the simulator renders on the host and exposes no frame statistics that could be trusted, so no iOS smoothness figure is claimed, consistent with the Android caveat in section 4c.
+
+Running the iOS checks found one layout bug: after a sort or filter change FlashList's scroll anchoring left the list scrolled past the new first results. It is fixed by disabling the anchoring.
+
 ## 6. CI and git hooks
 
 Pre-commit (Husky) runs three things:
@@ -200,7 +229,9 @@ CI (`.github/workflows/ci.yml`) runs on every push and pull request, on Node 22 
 
 ## 8. Known limitations
 
-- **Only Android has been built and run.** The iOS project resolves with `pod install` and codegen, but it has not been compiled, and the app has not been run on an iOS simulator or device.
+- **iOS has run on the simulator only.** It has not been run on a physical iPhone. On the simulator, a running app that went offline did not return to online after the host network came back (checked for three minutes and across a background and foreground cycle, with the host reaching the API throughout); a fresh launch reads the correct state. Whether this is the simulator not delivering network-path updates or a NetInfo reachability issue was not isolated, and the live reconnect on iOS is therefore unverified. Android reconnects correctly.
+- **Changing a filter while offline empties the screen.** A category or search change clears the feed so stale pages are not shown under the new source, and while offline the replacement cannot be fetched, so the user sees the offline empty state until the connection returns. The products stay cached; a cached copy of each source's feed would fix it.
+- **iOS shows no thumbnails offline in the release build.** Images are fetched over HTTP and iOS did not keep them across the offline relaunch, whereas the Android image pipeline did for items it had shown.
 - **Smoothness is unproven on hardware.** Frame measurements come from a software-rendered emulator on a loaded host and cannot support a claim of 60 fps. The next step is to profile on a mid-range physical device.
 - **The sync target is a stand-in.** `PUT /products/{id}` persists nothing, so delivery is exercised but not stored. A real favourites endpoint would also need idempotency keys, since a request can succeed server-side and fail on the way back, and the retry would then be a duplicate.
 - **Attempts are counted during connection loss.** A request that fails because connectivity dropped mid-flight counts toward the five-attempt cap. Distinguishing those failures from server rejections would be more accurate.
