@@ -16,7 +16,9 @@ import {
 
 const NOW = 1_700_000_000_000;
 
-const catalogState = makeCatalogState([1, 2], 10);
+const catalogState = makeCatalogState([1, 2], 10, NOW, [
+  { slug: 'beauty', name: 'Beauty' },
+]);
 
 describe('loadPersistedCatalog', () => {
   beforeEach(() => {
@@ -32,6 +34,14 @@ describe('loadPersistedCatalog', () => {
     storage.set('catalog', createCacheEntry(catalogState));
 
     expect(loadPersistedCatalog()).toEqual(catalogState);
+  });
+
+  it('restores the category list', () => {
+    storage.set('catalog', createCacheEntry(catalogState));
+
+    expect(loadPersistedCatalog()?.categories).toEqual([
+      { slug: 'beauty', name: 'Beauty' },
+    ]);
   });
 
   it('returns undefined when nothing is persisted', () => {
@@ -55,6 +65,10 @@ describe('loadPersistedCatalog', () => {
         cachedAt: NOW,
         data: { ...catalogState, feedKey: undefined },
       },
+    ],
+    [
+      'data from before categories were cached',
+      { cachedAt: NOW, data: { ...catalogState, categories: undefined } },
     ],
     ['an entry without a timestamp', { data: catalogState }],
   ])('returns undefined for %s', (_, value) => {

@@ -14,7 +14,7 @@ import {
   type ProductsResponse,
 } from '@features/catalog/api/catalogApi';
 import { feedKeys } from '@features/catalog/model/feedSource';
-import type { Product } from '@features/catalog/model/types';
+import type { Category, Product } from '@features/catalog/model/types';
 
 const productsAdapter = createEntityAdapter<Product>();
 
@@ -23,6 +23,9 @@ const initialState = productsAdapter.getInitialState({
   feedKey: null as string | null,
   total: 0,
   lastFetchedAt: null as number | null,
+  // Persisted with the products so the category chips exist on an offline
+  // launch; the query only refreshes them.
+  categories: [] as Category[],
 });
 
 export type CatalogState = typeof initialState;
@@ -93,6 +96,12 @@ const catalogSlice = createSlice({
           ),
       )
       .addMatcher(
+        catalogApi.endpoints.getCategories.matchFulfilled,
+        (state, { payload }) => {
+          state.categories = payload;
+        },
+      )
+      .addMatcher(
         catalogApi.endpoints.getProductById.matchFulfilled,
         (state, { payload }) => {
           productsAdapter.upsertOne(state, payload);
@@ -112,6 +121,8 @@ export const selectProductById = entitySelectors.selectById;
 
 export const selectFeedIds = (state: CatalogRootState) => state.catalog.feedIds;
 export const selectFeedKey = (state: CatalogRootState) => state.catalog.feedKey;
+export const selectCategories = (state: CatalogRootState) =>
+  state.catalog.categories;
 export const selectFeedTotal = (state: CatalogRootState) => state.catalog.total;
 export const selectLastFetchedAt = (state: CatalogRootState) =>
   state.catalog.lastFetchedAt;

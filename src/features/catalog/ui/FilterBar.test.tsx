@@ -14,6 +14,7 @@ import {
 } from '@features/catalog/model/filtersSlice';
 import {
   jsonResponse,
+  makeCatalogState,
   makeStore,
   stubFetch,
   teardownStore,
@@ -68,6 +69,27 @@ describe('FilterBar', () => {
     ).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Laptops' })).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'All' })).toBeOnTheScreen();
+  });
+
+  it('lists persisted categories without waiting for the network', () => {
+    store = makeStore(makeCatalogState([], 0, null, testCategories));
+    stubFetch(() => jsonResponse({}, 500));
+
+    renderBar();
+
+    expect(screen.getByRole('button', { name: 'Beauty' })).toBeOnTheScreen();
+  });
+
+  it('keeps persisted categories when the refresh fails', async () => {
+    store = makeStore(makeCatalogState([], 0, null, testCategories));
+    stubFetch(() => jsonResponse({}, 500));
+
+    renderBar();
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(0);
+    });
+
+    expect(screen.getByRole('button', { name: 'Laptops' })).toBeOnTheScreen();
   });
 
   it('marks All as selected until a category is chosen', async () => {

@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { spacing } from '@shared/config/theme';
 import { Text } from '@shared/ui';
 import { useGetCategoriesQuery } from '@features/catalog/api/catalogApi';
+import { selectCategories } from '@features/catalog/model/catalogSlice';
 import {
   PRICE_OPTIONS,
   RATING_OPTIONS,
@@ -33,11 +34,14 @@ export function FilterBar() {
     useSelector(selectFilters);
   const activeCount = useSelector(selectActiveFilterCount);
   const [expanded, setExpanded] = useState(false);
-  const { data: categories } = useGetCategoriesQuery();
+  // The query refreshes the list; the chips read the persisted copy so they
+  // are present before, and without, a response.
+  useGetCategoriesQuery();
+  const categories = useSelector(selectCategories);
 
   const categoryOptions: FilterOption<string | null>[] = [
     ALL_CATEGORIES,
-    ...(categories ?? []).map(({ slug, name }) => ({
+    ...categories.map(({ slug, name }) => ({
       value: slug,
       label: name,
     })),
@@ -46,7 +50,7 @@ export function FilterBar() {
   return (
     <View style={styles.bar}>
       <SearchBar />
-      {categories ? (
+      {categories.length > 0 ? (
         <ChipRow
           label="Category"
           options={categoryOptions}

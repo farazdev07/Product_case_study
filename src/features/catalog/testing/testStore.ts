@@ -8,7 +8,7 @@ import {
   type CatalogState,
 } from '@features/catalog/model/catalogSlice';
 import { favoritesReducer } from '@features/favorites';
-import type { Product } from '@features/catalog/model/types';
+import type { Category, Product } from '@features/catalog/model/types';
 
 export const makeProduct = (id: number): Product => ({
   id,
@@ -27,6 +27,7 @@ export const makeCatalogState = (
   ids: number[],
   total = ids.length,
   lastFetchedAt: number | null = null,
+  categories: Category[] = [],
 ): CatalogState => ({
   ids,
   entities: Object.fromEntries(ids.map(id => [id, makeProduct(id)])),
@@ -34,6 +35,7 @@ export const makeCatalogState = (
   feedKey: 'all',
   total,
   lastFetchedAt,
+  categories,
 });
 
 // Auto-batching notifies subscribers on requestAnimationFrame, which fires after

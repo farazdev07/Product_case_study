@@ -41,6 +41,7 @@ describe('store hydration', () => {
     feedKey: 'all',
     total: 5,
     lastFetchedAt: NOW,
+    categories: [{ slug: 'beauty', name: 'Beauty' }],
   };
 
   // The store hydrates when its module is evaluated, so each case seeds

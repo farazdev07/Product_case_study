@@ -1,6 +1,7 @@
 import { catalogApi } from '@features/catalog/api/catalogApi';
 import {
   feedCleared,
+  selectCategories,
   selectFeedIds,
   selectFeedKey,
   selectFeedProducts,
@@ -15,6 +16,7 @@ import {
   pagedCatalog,
   stubFetch,
   teardownStore,
+  testCategories,
   type TestStore,
 } from '@features/catalog/testing/testStore';
 
@@ -132,6 +134,24 @@ describe('catalogSlice', () => {
 
     expect(selectProductById(store.getState(), 1)?.title).toBe('Detail');
     expect(selectFeedIds(store.getState())).toEqual([1, 2]);
+  });
+
+  it('stores the fetched category list', async () => {
+    await store.dispatch(
+      catalogApi.endpoints.getCategories.initiate(undefined, {
+        subscribe: false,
+      }),
+    );
+
+    expect(selectCategories(store.getState())).toEqual(testCategories);
+  });
+
+  it('keeps the categories when the feed is cleared', () => {
+    store = makeStore(makeCatalogState([1], 1, null, testCategories));
+
+    store.dispatch(feedCleared());
+
+    expect(selectCategories(store.getState())).toEqual(testCategories);
   });
 
   it('memoises the feed selector for an unchanged state', async () => {
