@@ -61,6 +61,10 @@ const catalogSlice = createSlice({
       .addMatcher(catalogApi.endpoints.getProducts.matchFulfilled, applyPage)
       .addMatcher(catalogApi.endpoints.searchProducts.matchFulfilled, applyPage)
       .addMatcher(
+        catalogApi.endpoints.getProductsByCategory.matchFulfilled,
+        applyPage,
+      )
+      .addMatcher(
         catalogApi.endpoints.getProductById.matchFulfilled,
         (state, { payload }) => {
           productsAdapter.upsertOne(state, payload);

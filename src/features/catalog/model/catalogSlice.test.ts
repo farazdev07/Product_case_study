@@ -108,6 +108,20 @@ describe('catalogSlice', () => {
     expect(selectFeedIds(store.getState())).toEqual([1, 2]);
   });
 
+  it('applies category pages to the same feed', async () => {
+    await loadPage(0);
+
+    await store.dispatch(
+      catalogApi.endpoints.getProductsByCategory.initiate(
+        { slug: 'beauty', limit: 2, skip: 0 },
+        { subscribe: false },
+      ),
+    );
+
+    expect(selectFeedIds(store.getState())).toEqual([1, 2]);
+    expect(selectFeedTotal(store.getState())).toBe(TOTAL);
+  });
+
   it('upserts a fetched product detail over the cached row', async () => {
     await loadPage(0);
 

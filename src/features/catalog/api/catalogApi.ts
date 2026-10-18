@@ -6,6 +6,7 @@ export type ProductsResponse = Pagination & { products: Product[] };
 
 type PageArgs = { limit: number; skip: number };
 type SearchArgs = PageArgs & { q: string };
+type CategoryArgs = PageArgs & { slug: string };
 
 const LIST_TAG = { type: 'Product', id: 'LIST' } as const;
 
@@ -37,6 +38,13 @@ export const catalogApi = baseApi.injectEndpoints({
       }),
       providesTags: providesProducts,
     }),
+    getProductsByCategory: build.query<ProductsResponse, CategoryArgs>({
+      query: ({ slug, limit, skip }) => ({
+        url: `/products/category/${slug}`,
+        params: { limit, skip },
+      }),
+      providesTags: providesProducts,
+    }),
     getCategories: build.query<Category[], void>({
       query: () => '/products/categories',
     }),
@@ -50,6 +58,7 @@ export const catalogApi = baseApi.injectEndpoints({
 export const {
   useGetProductsQuery,
   useSearchProductsQuery,
+  useGetProductsByCategoryQuery,
   useGetCategoriesQuery,
   useGetProductByIdQuery,
 } = catalogApi;

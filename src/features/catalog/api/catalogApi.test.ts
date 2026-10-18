@@ -73,6 +73,24 @@ describe('catalogApi', () => {
     expect(url.searchParams.get('q')).toBe('phone');
   });
 
+  it('requests a page of one category', async () => {
+    const handler = respondWith({ products: [], total: 0, skip: 0, limit: 0 });
+
+    await store.dispatch(
+      catalogApi.endpoints.getProductsByCategory.initiate(
+        { slug: 'mens-shirts', limit: 20, skip: 40 },
+        { subscribe: false },
+      ),
+    );
+
+    const url = requestedUrl(handler);
+    expect(url.pathname).toBe('/products/category/mens-shirts');
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      limit: '20',
+      skip: '40',
+    });
+  });
+
   it('requests the category list', async () => {
     const handler = respondWith([{ slug: 'beauty', name: 'Beauty' }]);
 
@@ -125,6 +143,20 @@ describe('catalogApi', () => {
 
     expect(invalidatedBy(5)).toHaveLength(1);
     expect(invalidatedBy(6)).toHaveLength(0);
+  });
+
+  it('tags a category page the same way as a list', async () => {
+    respondWith({ products: [makeProduct(4)], total: 1, skip: 0, limit: 20 });
+
+    await store.dispatch(
+      catalogApi.endpoints.getProductsByCategory.initiate(
+        { slug: 'beauty', limit: 20, skip: 0 },
+        { subscribe: false },
+      ),
+    );
+
+    expect(invalidatedBy(4)).toHaveLength(1);
+    expect(invalidatedBy('LIST')).toHaveLength(1);
   });
 
   it('tags a search the same way as a list', async () => {
