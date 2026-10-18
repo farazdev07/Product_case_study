@@ -37,5 +37,17 @@ target 'ProductCatalog' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+
+    # fmt 11.0.2 (pinned by React Native 0.80) relies on consteval behaviour
+    # that the clang in current Xcode rejects when compiling as C++20, so the
+    # pod fails to build. Compiling fmt as C++17 disables consteval and is what
+    # it was written against; no other pod is affected.
+    installer.pods_project.targets.each do |target|
+      next unless target.name == 'fmt'
+
+      target.build_configurations.each do |build_config|
+        build_config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+      end
+    end
   end
 end
