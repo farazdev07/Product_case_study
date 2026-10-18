@@ -15,9 +15,15 @@ import {
   makeStore,
   pagedCatalog,
   stubFetch,
+  stubGatedFetch,
   teardownStore,
   type TestStore,
 } from '@features/catalog/testing/testStore';
+
+// RTK Query batches subscription updates on a timer, and the navigation and list
+// libraries schedule frames. Fake timers discard whatever is still pending when
+// a test ends; real ones would fire after Jest has closed the environment.
+jest.useFakeTimers();
 
 describe('CatalogScreen', () => {
   let store: TestStore;
@@ -39,17 +45,23 @@ describe('CatalogScreen', () => {
     // Unmount first: it arms RTK Query's expiry timers, which the reset cancels.
     cleanup();
     teardownStore(store);
+    jest.clearAllTimers();
     jest.restoreAllMocks();
   });
 
-  it('renders cached products immediately while the network is still pending', () => {
+  it('renders cached products immediately while the network is still pending', async () => {
     store = makeStore(makeCatalogState([1, 2, 3], 50));
-    stubFetch(() => new Promise<Response>(() => {}));
+    const release = stubGatedFetch(pagedCatalog(50));
 
     renderScreen();
 
     expect(screen.getByText('Product 1')).toBeOnTheScreen();
     expect(screen.getByText('Product 3')).toBeOnTheScreen();
+
+    release();
+    await waitFor(() =>
+      expect(store.getState().catalog.feedIds).toHaveLength(PAGE_SIZE),
+    );
   });
 
   it('shows a spinner, then the first page, on a cold start', async () => {

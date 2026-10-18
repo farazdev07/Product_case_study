@@ -62,6 +62,21 @@ export const stubFetch = (
       handler(new URL((input as Request).url)),
     );
 
+// Holds every response until the returned function is called, so a test can
+// observe the state while a request is in flight and still let it finish; an
+// abandoned request would re-arm RTK Query's cache timer after teardown.
+export const stubGatedFetch = (respond: (url: URL) => Response) => {
+  let release = () => {};
+  const gate = new Promise<void>(resolve => {
+    release = resolve;
+  });
+  stubFetch(async url => {
+    await gate;
+    return respond(url);
+  });
+  return release;
+};
+
 // Serves a fixed catalogue of `total` products in pages, like the real API.
 export const pagedCatalog = (total: number) => (url: URL) => {
   const limit = Number(url.searchParams.get('limit'));

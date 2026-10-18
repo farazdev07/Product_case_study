@@ -17,9 +17,15 @@ import {
   makeStore,
   pagedCatalog,
   stubFetch,
+  stubGatedFetch,
   teardownStore,
   type TestStore,
 } from '@features/catalog/testing/testStore';
+
+// RTK Query batches subscription updates on a timer, and the navigation and list
+// libraries schedule frames. Fake timers discard whatever is still pending when
+// a test ends; real ones would fire after Jest has closed the environment.
+jest.useFakeTimers();
 
 describe('canLoadMore', () => {
   const idle = { isFetching: false, isError: false, loaded: 20, total: 50 };
@@ -71,6 +77,7 @@ describe('useProductFeed', () => {
     // it must happen before the reset that cancels those timers.
     cleanup();
     teardownStore(store);
+    jest.clearAllTimers();
     jest.restoreAllMocks();
   });
 
@@ -173,7 +180,9 @@ describe('useProductFeed', () => {
     );
 
     act(() => result.current.refresh());
+
     await waitFor(() => expect(requestedSkips).toEqual([0, 0]));
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
   });
 
   it('reports an error, blocks paging, and recovers on retry', async () => {
@@ -196,12 +205,13 @@ describe('useProductFeed', () => {
     await waitFor(() =>
       expect(result.current.products).toHaveLength(PAGE_SIZE),
     );
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
     expect(result.current.isError).toBe(false);
   });
 
-  it('shows cached products immediately, before any request completes', () => {
+  it('shows cached products immediately, before any request completes', async () => {
     store = makeStore(makeCatalogState([1, 2, 3], 50));
-    stubFetch(() => new Promise<Response>(() => {}));
+    const release = stubGatedFetch(pagedCatalog(50));
 
     const { result } = renderHook(() => useProductFeed(), { wrapper });
 
@@ -209,5 +219,8 @@ describe('useProductFeed', () => {
       1, 2, 3,
     ]);
     expect(result.current.isRefreshing).toBe(true);
+
+    release();
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
   });
 });
