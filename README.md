@@ -242,6 +242,7 @@ CI (`.github/workflows/ci.yml`) runs on every push and pull request, on Node 22 
 - **Search and category cannot combine server-side.** `/products/search` and `/products/category/{slug}` are separate endpoints. The category filter is applied client-side when a search is active, and as the server query when it is not. A search with a category selected shows only loaded matches.
 - **No image caching library.** React Native's `Image` was sufficient at this list size, and a native dependency such as an image-caching library was not justified. Each fetched page's thumbnails are passed to `Image.prefetch`, which warms the platform's own cache; it is not a cache of ours. On Android that is enough (below). On iOS it is not: the thumbnails are served with `Cache-Control: public, max-age=0, no-store`, so the iOS URL cache refuses to store them, and neither prefetching nor a larger URL cache changes that.
 - **Single theme, no theme context.** The app has one theme, so a plain module of tokens is used. A provider would add a render dependency with nothing to switch between.
+- **Price and rating use preset chips, not free input.** A price ceiling and a minimum rating are chosen from fixed steps (under $25, $50, $100, $500; 3, 4 and 4.5 and up). There is no text field to validate, so an empty, negative, non-numeric or out-of-range value cannot be entered; the invalid states are removed by construction rather than handled.
 - **NetInfo for connectivity, request errors for the empty state.** The offline empty state is derived from the request failing with a fetch error, which is true to what the user can actually do; the NetInfo-driven banner reports the device's status separately.
 - **Favourites queue written without throttling, catalog cache throttled.** The first is user data and writes are one per tap; the second is disposable and written in bursts while paging.
 - **Entity adapter slice rather than persisting RTK Query.** See section 4a.
@@ -258,6 +259,7 @@ CI (`.github/workflows/ci.yml`) runs on every push and pull request, on Node 22 
 - **The queue is unbounded.** There is no cap on queued actions and no conflict resolution against server state.
 - **Filters apply to loaded pages.** A price or rating filter cannot find a match on a page that has not been fetched. A real backend would take these as query parameters.
 - **Filter selections are not persisted** across launches; only data is.
+- **Favourites have no screen of their own.** They exist to give the offline queue a real action to carry (see section 4b), so they are only marked on the product cards and the detail screen. A dedicated saved-items screen listing them is the natural next step.
 - **The release build is signed with the debug keystore.** There is no signing configuration, crash reporting or analytics.
 - **No end-to-end tests.** Behaviour is covered by component and hook tests and by the manual device sequence above. Automating that sequence with an end-to-end runner is the most valuable test addition.
 - **The categories list is cached only after one online launch.** A first launch offline shows the feed's empty state and no chips.
