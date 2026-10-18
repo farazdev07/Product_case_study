@@ -1,4 +1,5 @@
-import { Image } from 'react-native';
+import * as ReactNative from 'react-native';
+import { Image, StyleSheet } from 'react-native';
 import { Provider } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
@@ -54,6 +55,80 @@ describe('ProductDetailScreen', () => {
     fireEvent.press(screen.getByRole('button', { name: 'Add to favorites' }));
 
     expect(store.getState().favorites.ids).toEqual([5]);
+  });
+
+  describe('layout', () => {
+    const setWidth = (width: number) =>
+      jest
+        .spyOn(ReactNative.Dimensions, 'get')
+        .mockReturnValue({ width, height: 900, scale: 2, fontScale: 1 });
+    const imageStyle = () =>
+      StyleSheet.flatten(screen.UNSAFE_getByType(Image).props.style);
+    // The nearest ancestor of the price that lays its children out in a row.
+    const priceRowStyle = () => {
+      for (
+        let node = screen.getByText('$10.00').parent;
+        node;
+        node = node.parent
+      ) {
+        const style = StyleSheet.flatten(node.props.style);
+        if (style?.flexDirection === 'row') {
+          return style;
+        }
+      }
+      throw new Error('price is not in a row');
+    };
+    const saveStyle = () =>
+      StyleSheet.flatten(
+        screen.getByRole('button', { name: 'Add to favorites' }).props.style,
+      );
+
+    beforeEach(() => {
+      store = makeStore(makeCatalogState([5]));
+    });
+
+    it('stacks a full-width banner image on a phone', () => {
+      setWidth(400);
+      renderScreen(5);
+
+      expect(imageStyle()).toMatchObject({ width: '100%', height: 280 });
+      expect(priceRowStyle().justifyContent).toBe('space-between');
+    });
+
+    it.each([
+      ['a tablet in portrait', 834],
+      ['a tablet in landscape', 1376],
+    ])('puts a square image beside the details on %s', (_, width) => {
+      setWidth(width);
+      renderScreen(5);
+
+      expect(imageStyle()).toMatchObject({ width: '45%', aspectRatio: 1 });
+      expect(priceRowStyle().justifyContent).toBeUndefined();
+    });
+
+    it('keeps the price and rating together on a wide screen', () => {
+      setWidth(834);
+      renderScreen(5);
+
+      expect(priceRowStyle().gap).toBeGreaterThan(0);
+      expect(screen.getByText('4.0 / 5')).toBeOnTheScreen();
+    });
+
+    it('gives the save button a full-size touch target on the detail screen', () => {
+      setWidth(834);
+      renderScreen(5);
+
+      expect(saveStyle()).toMatchObject({ minWidth: 96, minHeight: 44 });
+    });
+
+    it('still shows every field on a wide screen', () => {
+      setWidth(834);
+      renderScreen(5);
+
+      for (const text of ['Product 5', '$10.00', 'A product', '1 in stock']) {
+        expect(screen.getByText(text)).toBeOnTheScreen();
+      }
+    });
   });
 
   it('renders a cached product without making a request', () => {

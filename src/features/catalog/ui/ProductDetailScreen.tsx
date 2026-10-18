@@ -1,8 +1,15 @@
-import { Image, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { useSelector } from 'react-redux';
 import { colors, radii, spacing } from '@shared/config/theme';
 import { Button, Screen, Spinner, Text } from '@shared/ui';
 import { useGetProductByIdQuery } from '@features/catalog/api/catalogApi';
+import { columnsForWidth } from '@features/catalog/lib/columns';
 import { formatCategory, formatPrice } from '@features/catalog/lib/format';
 import {
   selectProductById,
@@ -23,6 +30,9 @@ export function ProductDetailScreen({ productId }: Props) {
   const product = useSelector((state: CatalogRootState) =>
     selectProductById(state, productId),
   );
+  // The same breakpoint as the list: wherever the list has several columns, the
+  // detail has two.
+  const isWide = columnsForWidth(useWindowDimensions().width) > 1;
   const { isError, refetch } = useGetProductByIdQuery(productId, {
     skip: product !== undefined,
   });
@@ -47,43 +57,55 @@ export function ProductDetailScreen({ productId }: Props) {
   return (
     <Screen belowHeader>
       <ScrollView contentContainerStyle={styles.content}>
-        <Image
-          source={{ uri: product.images[0] ?? product.thumbnail }}
-          style={styles.image}
-          resizeMode="contain"
-        />
-        <Text variant="title">{product.title}</Text>
-        <Text color="textSecondary">
-          {product.brand
-            ? `${product.brand} - ${formatCategory(product.category)}`
-            : formatCategory(product.category)}
-        </Text>
-        <View style={styles.priceRow}>
-          <Text variant="title">{formatPrice(product.price)}</Text>
-          <Text color="textSecondary">{`${product.rating.toFixed(
-            1,
-          )} / 5`}</Text>
+        <View style={isWide ? styles.wideLayout : styles.narrowLayout}>
+          <Image
+            source={{ uri: product.images[0] ?? product.thumbnail }}
+            style={isWide ? styles.wideImage : styles.image}
+            resizeMode="contain"
+          />
+          <View style={isWide ? styles.wideDetails : styles.narrowLayout}>
+            <Text variant="title">{product.title}</Text>
+            <Text color="textSecondary">
+              {product.brand
+                ? `${product.brand} - ${formatCategory(product.category)}`
+                : formatCategory(product.category)}
+            </Text>
+            <View style={isWide ? styles.wideRatingRow : styles.priceRow}>
+              <Text variant="title">{formatPrice(product.price)}</Text>
+              <Text color="textSecondary">{`${product.rating.toFixed(
+                1,
+              )} / 5`}</Text>
+            </View>
+            <View style={styles.favorite}>
+              <FavoriteButton productId={product.id} large />
+            </View>
+            <Text color="textSecondary">
+              {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
+            </Text>
+            <Text>{product.description}</Text>
+          </View>
         </View>
-        <View style={styles.favorite}>
-          <FavoriteButton productId={product.id} />
-        </View>
-        <Text color="textSecondary">
-          {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
-        </Text>
-        <Text>{product.description}</Text>
       </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  // On a tablet the page is a centred column rather than text across the width.
+  // On a tablet the page is a centred block rather than content across the
+  // full width.
   content: {
-    gap: spacing.md,
     padding: spacing.md,
     width: '100%',
-    maxWidth: 720,
+    maxWidth: 900,
     alignSelf: 'center',
+  },
+  narrowLayout: {
+    gap: spacing.md,
+  },
+  wideLayout: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.lg,
   },
   image: {
     width: '100%',
@@ -91,10 +113,26 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     backgroundColor: colors.surface,
   },
+  // 45% of the block, square, so the product is shown at a natural shape.
+  wideImage: {
+    width: '45%',
+    aspectRatio: 1,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
+  },
+  wideDetails: {
+    flex: 1,
+    gap: spacing.md,
+  },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  wideRatingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
   },
   favorite: {
     alignItems: 'flex-start',

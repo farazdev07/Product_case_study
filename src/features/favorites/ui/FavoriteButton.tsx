@@ -11,6 +11,8 @@ import {
 
 type Props = {
   productId: number;
+  // The roomy variant for a screen where it is the main action, not a row item.
+  large?: boolean;
 };
 
 // The button takes only a primitive id and reads its own state, instead of the
@@ -21,6 +23,7 @@ type Props = {
 // re-renders only the button that was tapped.
 export const FavoriteButton = memo(function FavoriteButton({
   productId,
+  large = false,
 }: Props) {
   const dispatch = useDispatch();
   const isFavorite = useSelector((state: FavoritesRootState) =>
@@ -41,7 +44,11 @@ export const FavoriteButton = memo(function FavoriteButton({
       accessibilityState={{ selected: isFavorite }}
       hitSlop={spacing.sm}
       onPress={toggle}
-      style={[styles.button, isFavorite && styles.selected]}
+      style={[
+        styles.button,
+        large && styles.large,
+        isFavorite && styles.selected,
+      ]}
     >
       <Text
         variant="caption"
@@ -61,6 +68,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
+  },
+  // 44 points is the platform minimum for a comfortable touch target.
+  large: {
+    minWidth: 96,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   selected: {
     borderColor: colors.primary,
