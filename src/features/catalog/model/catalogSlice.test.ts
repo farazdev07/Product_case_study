@@ -8,6 +8,7 @@ import {
 } from '@features/catalog/model/catalogSlice';
 import {
   jsonResponse,
+  makeCatalogState,
   makeProduct,
   makeStore,
   pagedCatalog,
@@ -124,5 +125,11 @@ describe('catalogSlice', () => {
     expect(selectFeedProducts(store.getState())).toBe(
       selectFeedProducts(store.getState()),
     );
+  });
+
+  it('skips feed ids that have no cached product', () => {
+    store = makeStore({ ...makeCatalogState([1]), feedIds: [1, 99] });
+
+    expect(selectFeedProducts(store.getState()).map(p => p.id)).toEqual([1]);
   });
 });
