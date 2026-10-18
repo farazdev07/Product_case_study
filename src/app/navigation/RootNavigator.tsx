@@ -4,6 +4,7 @@ import {
   type NativeStackScreenProps,
 } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@app/navigation/types';
+import { ScreenWithBanner } from '@app/navigation/ScreenWithBanner';
 import { colors } from '@shared/config/theme';
 import { CatalogScreen, ProductDetailScreen } from '@features/catalog';
 
@@ -19,13 +20,21 @@ function CatalogRoute({
     [navigation],
   );
 
-  return <CatalogScreen onProductPress={openProduct} />;
+  return (
+    <ScreenWithBanner>
+      <CatalogScreen onProductPress={openProduct} />
+    </ScreenWithBanner>
+  );
 }
 
 function ProductDetailRoute({
   route,
 }: NativeStackScreenProps<RootStackParamList, 'ProductDetail'>) {
-  return <ProductDetailScreen productId={route.params.id} />;
+  return (
+    <ScreenWithBanner>
+      <ProductDetailScreen productId={route.params.id} />
+    </ScreenWithBanner>
+  );
 }
 
 export function RootNavigator() {

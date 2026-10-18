@@ -5,3 +5,4 @@ export {
   selectIsOnline,
   type NetworkRootState,
 } from '@features/connectivity/model/networkSlice';
+export { NetworkBanner } from '@features/connectivity/ui/NetworkBanner';

@@ -11,6 +11,7 @@ import {
   registerCatalogPersistence,
   registerFeedReset,
 } from '@features/catalog';
+import { networkReducer } from '@features/connectivity';
 import {
   favoritesReducer,
   loadPersistedFavorites,
@@ -34,6 +35,7 @@ const rootReducer = combineReducers({
   catalog: catalogReducer,
   filters: filtersReducer,
   favorites: favoritesReducer,
+  network: networkReducer,
 });
 
 const preloadedState: Partial<ReturnType<typeof rootReducer>> = {
