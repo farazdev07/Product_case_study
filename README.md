@@ -21,7 +21,7 @@ ProductCatalog is a React Native 0.80 (TypeScript, New Architecture) app that br
 ### Install
 
 ```sh
-git clone <repository-url> ProductCatalog
+git clone https://github.com/farazdev07/Product_case_study.git ProductCatalog
 cd ProductCatalog
 yarn install
 ```
@@ -98,6 +98,19 @@ The version is declared once, in `android/build.gradle`.
 
 Type checking is `yarn tsc --noEmit`.
 
+### See the offline behaviour
+
+On an Android emulator this takes about two minutes. The package is `com.faraz.productcatalog`.
+
+1. Install a release build (the commands above) and launch it with the network on. Wait for the product list and the category chips to appear.
+2. Force-stop the app: `adb shell am force-stop com.faraz.productcatalog`.
+3. Turn the network off: `adb shell svc wifi disable` and `adb shell svc data disable`.
+4. Launch the app again. The products and category chips are on screen at once, with no spinner, and a grey bar under the header reads "Offline — Serving Cached Data". This step needs a release build, because a debug build loads its JavaScript bundle from Metro, which an offline device cannot reach; to use a debug build, use the `adb reverse` alternative described under Android above.
+5. Tap Save on a product. The button changes to "Saved" immediately. Force-stop and relaunch to see that the favourite and its pending sync survive a restart.
+6. Turn the network back on: `adb shell svc wifi enable` and `adb shell svc data enable`. The bar changes to "Syncing Queued Actions" while the queued favourite is sent, then disappears.
+
+On the iOS simulator the same steps work with the host machine's network standing in for steps 3 and 6, with one difference: a running app was not seen to detect the network returning (see section 8), so for step 6 relaunch the app with the network on and the queue drains at launch.
+
 ## 3. Architecture
 
 The source is split into three layers under `src/`:
@@ -169,7 +182,7 @@ These numbers do not show a smooth list in absolute terms. The emulator renders 
 
 ## 5. Testing
 
-The suite is Jest with React Native Testing Library: 39 suites and 339 tests, with 100% statement, branch, function and line coverage. `jest.config.js` enforces a 70% global floor for all four measures, and CI runs `yarn test --coverage`, so a drop below the floor fails the build. Type-only files, barrels and test helpers are excluded from coverage.
+The suite is Jest with React Native Testing Library: 40 suites and 363 tests, with 100% statement, branch, function and line coverage. `jest.config.js` enforces a 70% global floor for all four measures, and CI runs `yarn test --coverage`, so a drop below the floor fails the build. Type-only files, barrels and test helpers are excluded from coverage.
 
 What is covered, and why those things:
 
