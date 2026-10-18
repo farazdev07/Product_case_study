@@ -14,14 +14,17 @@ type Props = {
 };
 
 export function ProductDetailScreen({ productId }: Props) {
-  // The product is read from the slice first: anything opened from the feed is
-  // already cached, so the screen renders at once, and also works offline. The
-  // query is only a refresh and the fallback for a product that is not cached.
-  // Its result reaches the screen through the slice, not through `data`.
+  // dummyjson's list and detail endpoints return identical objects (checked
+  // field by field), so a product opened from the feed is already complete and
+  // needs no request. The detail query exists only for a cache miss, such as
+  // an id that was never listed. Its result reaches the screen through the
+  // slice, not through `data`.
   const product = useSelector((state: CatalogRootState) =>
     selectProductById(state, productId),
   );
-  const { isError, refetch } = useGetProductByIdQuery(productId);
+  const { isError, refetch } = useGetProductByIdQuery(productId, {
+    skip: product !== undefined,
+  });
 
   if (!product) {
     return (

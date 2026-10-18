@@ -5,7 +5,6 @@ import {
   fireEvent,
   render,
   screen,
-  waitFor,
 } from '@testing-library/react-native';
 import { ProductDetailScreen } from '@features/catalog/ui/ProductDetailScreen';
 import {
@@ -14,7 +13,6 @@ import {
   makeProduct,
   makeStore,
   stubFetch,
-  stubGatedFetch,
   teardownStore,
   type TestStore,
 } from '@features/catalog/testing/testStore';
@@ -48,47 +46,16 @@ describe('ProductDetailScreen', () => {
     jest.restoreAllMocks();
   });
 
-  it('renders a cached product at once, before the request completes', async () => {
+  it('renders a cached product without making a request', () => {
     store = makeStore(makeCatalogState([5]));
-    const release = stubGatedFetch(() => jsonResponse(makeProduct(5)));
+    const fetchSpy = stubFetch(() => jsonResponse(makeProduct(5)));
 
     renderScreen(5);
 
     expect(screen.getByText('Product 5')).toBeOnTheScreen();
     expect(screen.getByText('$10.00')).toBeOnTheScreen();
     expect(screen.getByText('A product')).toBeOnTheScreen();
-
-    release();
-    await waitFor(() =>
-      expect(
-        Object.values(store.getState().api.queries).every(
-          query => query?.status === 'fulfilled',
-        ),
-      ).toBe(true),
-    );
-  });
-
-  it('refreshes a cached product with the fetched version', async () => {
-    store = makeStore(makeCatalogState([5]));
-    stubFetch(() => jsonResponse({ ...makeProduct(5), title: 'Refreshed' }));
-
-    renderScreen(5);
-
-    expect(await screen.findByText('Refreshed')).toBeOnTheScreen();
-  });
-
-  it('keeps showing the cached product when the refresh fails', async () => {
-    store = makeStore(makeCatalogState([5]));
-    const failing = jest.fn(() => jsonResponse({ message: 'down' }, 500));
-    stubFetch(failing);
-
-    renderScreen(5);
-    await waitFor(() => expect(failing).toHaveBeenCalled());
-
-    expect(screen.getByText('Product 5')).toBeOnTheScreen();
-    expect(
-      screen.queryByText('Could not load this product.'),
-    ).not.toBeOnTheScreen();
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('fetches a product that is not cached', async () => {
