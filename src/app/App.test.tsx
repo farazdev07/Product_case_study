@@ -32,12 +32,15 @@ describe('App', () => {
   beforeEach(() => {
     jest.spyOn(globalThis, 'fetch').mockImplementation(async input => {
       const { pathname } = new URL((input as Request).url);
-      return new Response(
-        JSON.stringify(pathname === '/products/1' ? product : page),
-        {
-          headers: { 'content-type': 'application/json' },
-        },
-      );
+      const body =
+        pathname === '/products/categories'
+          ? []
+          : pathname === '/products/1'
+          ? product
+          : page;
+      return new Response(JSON.stringify(body), {
+        headers: { 'content-type': 'application/json' },
+      });
     });
   });
 

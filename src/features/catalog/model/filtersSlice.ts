@@ -59,3 +59,14 @@ export const filtersReducer = filtersSlice.reducer;
 export const selectFilters = (state: FiltersRootState) => state.filters;
 export const selectSearchTerm = (state: FiltersRootState) =>
   state.filters.searchTerm;
+
+export const selectActiveFilterCount = ({
+  filters,
+}: FiltersRootState): number =>
+  [
+    filters.searchTerm.trim() !== '',
+    filters.categorySlug !== null,
+    filters.maxPrice !== null,
+    filters.minRating !== null,
+    filters.sortBy !== 'default',
+  ].filter(Boolean).length;

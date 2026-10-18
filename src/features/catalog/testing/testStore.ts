@@ -1,6 +1,7 @@
 // Shared by the catalog's tests only; nothing in the app imports this.
-import { configureStore } from '@reduxjs/toolkit';
+import { configureStore, createListenerMiddleware } from '@reduxjs/toolkit';
 import { baseApi } from '@shared/api/baseApi';
+import { registerFeedReset } from '@features/catalog/model/feedReset';
 import { filtersReducer } from '@features/catalog/model/filtersSlice';
 import {
   catalogReducer,
@@ -35,9 +36,18 @@ export const makeCatalogState = (
 });
 
 // Auto-batching notifies subscribers on requestAnimationFrame, which fires after
-// Jest tears the environment down.
-export const makeStore = (catalog?: CatalogState) =>
-  configureStore({
+// Jest tears the environment down. `feedReset` wires the same listener the app
+// store registers, for tests that change the filters.
+export const makeStore = (
+  catalog?: CatalogState,
+  { feedReset = false }: { feedReset?: boolean } = {},
+) => {
+  const listener = createListenerMiddleware();
+  if (feedReset) {
+    registerFeedReset(listener);
+  }
+
+  return configureStore({
     reducer: {
       [baseApi.reducerPath]: baseApi.reducer,
       catalog: catalogReducer,
@@ -45,9 +55,12 @@ export const makeStore = (catalog?: CatalogState) =>
     },
     preloadedState: catalog ? { catalog } : undefined,
     middleware: getDefaultMiddleware =>
-      getDefaultMiddleware().concat(baseApi.middleware),
+      getDefaultMiddleware()
+        .prepend(listener.middleware)
+        .concat(baseApi.middleware),
     enhancers: getDefaultEnhancers => getDefaultEnhancers({ autoBatch: false }),
   });
+};
 
 export type TestStore = ReturnType<typeof makeStore>;
 
@@ -81,8 +94,17 @@ export const stubGatedFetch = (respond: (url: URL) => Response) => {
   return release;
 };
 
+export const testCategories = [
+  { slug: 'beauty', name: 'Beauty' },
+  { slug: 'laptops', name: 'Laptops' },
+];
+
 // Serves a fixed catalogue of `total` products in pages, like the real API.
 export const pagedCatalog = (total: number) => (url: URL) => {
+  if (url.pathname === '/products/categories') {
+    return jsonResponse(testCategories);
+  }
+
   const limit = Number(url.searchParams.get('limit'));
   const skip = Number(url.searchParams.get('skip'));
   const ids = Array.from({ length: total }, (_, index) => index + 1).slice(

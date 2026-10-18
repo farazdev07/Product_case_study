@@ -5,6 +5,7 @@ import { spacing } from '@shared/config/theme';
 import { Button, Screen, Spinner, Text } from '@shared/ui';
 import { useProductFeed } from '@features/catalog/lib/useProductFeed';
 import type { Product } from '@features/catalog/model/types';
+import { FilterBar } from '@features/catalog/ui/FilterBar';
 import { ProductCard } from '@features/catalog/ui/ProductCard';
 
 type Props = {
@@ -67,6 +68,7 @@ export function CatalogScreen({ onProductPress }: Props) {
 
   return (
     <Screen belowHeader>
+      <FilterBar />
       <FlashList
         testID="product-feed"
         data={products}
