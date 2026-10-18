@@ -1,0 +1,213 @@
+import type { PropsWithChildren } from 'react';
+import { Provider } from 'react-redux';
+import {
+  act,
+  cleanup,
+  renderHook,
+  waitFor,
+} from '@testing-library/react-native';
+import { PAGE_SIZE } from '@shared/config/constants';
+import {
+  canLoadMore,
+  useProductFeed,
+} from '@features/catalog/lib/useProductFeed';
+import {
+  jsonResponse,
+  makeCatalogState,
+  makeStore,
+  pagedCatalog,
+  stubFetch,
+  teardownStore,
+  type TestStore,
+} from '@features/catalog/testing/testStore';
+
+describe('canLoadMore', () => {
+  const idle = { isFetching: false, isError: false, loaded: 20, total: 50 };
+
+  it('allows loading when idle and more products remain', () => {
+    expect(canLoadMore(idle)).toBe(true);
+  });
+
+  it('blocks while a request is in flight', () => {
+    expect(canLoadMore({ ...idle, isFetching: true })).toBe(false);
+  });
+
+  it('blocks after a failure until the user retries', () => {
+    expect(canLoadMore({ ...idle, isError: true })).toBe(false);
+  });
+
+  it('blocks once every product is loaded', () => {
+    expect(canLoadMore({ ...idle, loaded: 50 })).toBe(false);
+  });
+
+  it('blocks before the first page has reported a total', () => {
+    expect(canLoadMore({ ...idle, loaded: 0, total: 0 })).toBe(false);
+  });
+});
+
+describe('useProductFeed', () => {
+  let store: TestStore;
+  let requestedSkips: number[];
+
+  const wrapper = ({ children }: PropsWithChildren) => (
+    <Provider store={store}>{children}</Provider>
+  );
+
+  const serve = (total: number) => {
+    const page = pagedCatalog(total);
+    stubFetch(url => {
+      requestedSkips.push(Number(url.searchParams.get('skip')));
+      return page(url);
+    });
+  };
+
+  beforeEach(() => {
+    store = makeStore();
+    requestedSkips = [];
+  });
+
+  afterEach(() => {
+    // Unmounting unsubscribes the query, which arms RTK Query's expiry timer;
+    // it must happen before the reset that cancels those timers.
+    cleanup();
+    teardownStore(store);
+    jest.restoreAllMocks();
+  });
+
+  it('loads the first page on mount', async () => {
+    serve(50);
+
+    const { result } = renderHook(() => useProductFeed(), { wrapper });
+
+    await waitFor(() =>
+      expect(result.current.products).toHaveLength(PAGE_SIZE),
+    );
+    expect(requestedSkips).toEqual([0]);
+  });
+
+  it('requests the next page when the end is reached', async () => {
+    serve(50);
+    const { result } = renderHook(() => useProductFeed(), { wrapper });
+    await waitFor(() =>
+      expect(result.current.products).toHaveLength(PAGE_SIZE),
+    );
+
+    act(() => result.current.loadMore());
+
+    await waitFor(() =>
+      expect(result.current.products).toHaveLength(PAGE_SIZE * 2),
+    );
+    expect(requestedSkips).toEqual([0, PAGE_SIZE]);
+  });
+
+  it('ignores end-reached events while the first page is loading', async () => {
+    serve(50);
+    const { result } = renderHook(() => useProductFeed(), { wrapper });
+
+    act(() => result.current.loadMore());
+    await waitFor(() =>
+      expect(result.current.products).toHaveLength(PAGE_SIZE),
+    );
+
+    expect(requestedSkips).toEqual([0]);
+  });
+
+  it('requests a page once when end-reached fires twice before a re-render', async () => {
+    serve(100);
+    const { result } = renderHook(() => useProductFeed(), { wrapper });
+    await waitFor(() =>
+      expect(result.current.products).toHaveLength(PAGE_SIZE),
+    );
+
+    act(() => {
+      result.current.loadMore();
+      result.current.loadMore();
+    });
+    await waitFor(() =>
+      expect(result.current.products).toHaveLength(PAGE_SIZE * 2),
+    );
+
+    expect(requestedSkips).toEqual([0, PAGE_SIZE]);
+  });
+
+  it('stops requesting once every product is loaded', async () => {
+    serve(PAGE_SIZE + 5);
+    const { result } = renderHook(() => useProductFeed(), { wrapper });
+    await waitFor(() =>
+      expect(result.current.products).toHaveLength(PAGE_SIZE),
+    );
+    act(() => result.current.loadMore());
+    await waitFor(() =>
+      expect(result.current.products).toHaveLength(PAGE_SIZE + 5),
+    );
+
+    act(() => result.current.loadMore());
+
+    expect(requestedSkips).toEqual([0, PAGE_SIZE]);
+  });
+
+  it('refreshes from a later page by requesting the first page again', async () => {
+    serve(100);
+    const { result } = renderHook(() => useProductFeed(), { wrapper });
+    await waitFor(() =>
+      expect(result.current.products).toHaveLength(PAGE_SIZE),
+    );
+    act(() => result.current.loadMore());
+    await waitFor(() =>
+      expect(result.current.products).toHaveLength(PAGE_SIZE * 2),
+    );
+
+    act(() => result.current.refresh());
+
+    await waitFor(() =>
+      expect(result.current.products).toHaveLength(PAGE_SIZE),
+    );
+    expect(requestedSkips).toEqual([0, PAGE_SIZE, 0]);
+  });
+
+  it('refreshes the first page in place', async () => {
+    serve(50);
+    const { result } = renderHook(() => useProductFeed(), { wrapper });
+    await waitFor(() =>
+      expect(result.current.products).toHaveLength(PAGE_SIZE),
+    );
+
+    act(() => result.current.refresh());
+    await waitFor(() => expect(requestedSkips).toEqual([0, 0]));
+  });
+
+  it('reports an error, blocks paging, and recovers on retry', async () => {
+    let failing = true;
+    const page = pagedCatalog(50);
+    stubFetch(url => {
+      requestedSkips.push(Number(url.searchParams.get('skip')));
+      return failing ? jsonResponse({ message: 'down' }, 500) : page(url);
+    });
+    const { result } = renderHook(() => useProductFeed(), { wrapper });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    act(() => result.current.loadMore());
+    expect(requestedSkips).toEqual([0]);
+
+    failing = false;
+    act(() => {
+      result.current.retry();
+    });
+    await waitFor(() =>
+      expect(result.current.products).toHaveLength(PAGE_SIZE),
+    );
+    expect(result.current.isError).toBe(false);
+  });
+
+  it('shows cached products immediately, before any request completes', () => {
+    store = makeStore(makeCatalogState([1, 2, 3], 50));
+    stubFetch(() => new Promise<Response>(() => {}));
+
+    const { result } = renderHook(() => useProductFeed(), { wrapper });
+
+    expect(result.current.products.map(product => product.id)).toEqual([
+      1, 2, 3,
+    ]);
+    expect(result.current.isRefreshing).toBe(true);
+  });
+});

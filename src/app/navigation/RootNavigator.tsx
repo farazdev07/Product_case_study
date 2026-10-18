@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
   createNativeStackNavigator,
@@ -5,24 +6,22 @@ import {
 } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@app/navigation/types';
 import { colors, spacing } from '@shared/config/theme';
-import { Button, Screen, Text } from '@shared/ui';
+import { Screen, Text } from '@shared/ui';
+import { CatalogScreen } from '@features/catalog';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 function CatalogRoute({
   navigation,
 }: NativeStackScreenProps<RootStackParamList, 'Catalog'>) {
-  return (
-    <Screen>
-      <View style={styles.content}>
-        <Text variant="title">Product Catalog</Text>
-        <Button
-          title="Open product 1"
-          onPress={() => navigation.navigate('ProductDetail', { id: 1 })}
-        />
-      </View>
-    </Screen>
+  // The feature stays unaware of navigation; this wrapper translates its
+  // callback into a typed route push.
+  const openProduct = useCallback(
+    (id: number) => navigation.navigate('ProductDetail', { id }),
+    [navigation],
   );
+
+  return <CatalogScreen onProductPress={openProduct} />;
 }
 
 function ProductDetailRoute({
@@ -31,7 +30,7 @@ function ProductDetailRoute({
   return (
     <Screen>
       <View style={styles.content}>
-        <Text variant="title">{`Product ${route.params.id}`}</Text>
+        <Text variant="title">{`Detail for product ${route.params.id}`}</Text>
       </View>
     </Screen>
   );
