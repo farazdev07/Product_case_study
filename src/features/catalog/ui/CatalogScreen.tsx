@@ -97,6 +97,10 @@ export function CatalogScreen({ onProductPress }: Props) {
         keyExtractor={keyExtractor}
         ItemSeparatorComponent={Separator}
         contentContainerStyle={styles.list}
+        // FlashList v2 keeps the first visible row in place when data changes.
+        // A new sort order or filter replaces the rows, so that anchoring left
+        // the list scrolled past the new first results; start from the top.
+        maintainVisibleContentPosition={{ disabled: true }}
         onEndReached={loadMore}
         refreshing={isRefreshing}
         onRefresh={refresh}
