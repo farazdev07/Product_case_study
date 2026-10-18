@@ -23,12 +23,13 @@ export const makeProduct = (id: number): Product => ({
 export const makeCatalogState = (
   ids: number[],
   total = ids.length,
+  lastFetchedAt: number | null = null,
 ): CatalogState => ({
   ids,
   entities: Object.fromEntries(ids.map(id => [id, makeProduct(id)])),
   feedIds: ids,
   total,
-  lastFetchedAt: null,
+  lastFetchedAt,
 });
 
 // Auto-batching notifies subscribers on requestAnimationFrame, which fires after

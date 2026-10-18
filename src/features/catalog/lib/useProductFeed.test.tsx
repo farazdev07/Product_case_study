@@ -6,7 +6,7 @@ import {
   renderHook,
   waitFor,
 } from '@testing-library/react-native';
-import { PAGE_SIZE } from '@shared/config/constants';
+import { CACHE_TTL_MS, PAGE_SIZE } from '@shared/config/constants';
 import {
   canLoadMore,
   useProductFeed,
@@ -222,5 +222,59 @@ describe('useProductFeed', () => {
 
     release();
     await waitFor(() => expect(result.current.isFetching).toBe(false));
+  });
+
+  describe('with a hydrated feed', () => {
+    const hydrate = (lastFetchedAt: number) => {
+      const loaded = Array.from({ length: PAGE_SIZE * 2 }, (_, i) => i + 1);
+      store = makeStore(makeCatalogState(loaded, 100, lastFetchedAt));
+    };
+
+    it('makes no request on mount while the cache is fresh', async () => {
+      hydrate(Date.now() - CACHE_TTL_MS + 60_000);
+      serve(100);
+
+      const { result } = renderHook(() => useProductFeed(), { wrapper });
+
+      expect(result.current.products).toHaveLength(PAGE_SIZE * 2);
+      expect(result.current.isFetching).toBe(false);
+      expect(requestedSkips).toEqual([]);
+    });
+
+    it('revalidates the first page on mount once the cache is as old as the ttl', async () => {
+      hydrate(Date.now() - CACHE_TTL_MS);
+      serve(100);
+
+      const { result } = renderHook(() => useProductFeed(), { wrapper });
+
+      await waitFor(() => expect(requestedSkips).toEqual([0]));
+      await waitFor(() => expect(result.current.isFetching).toBe(false));
+    });
+
+    it('continues paging after the loaded products, not from the first page', async () => {
+      hydrate(Date.now());
+      serve(100);
+      const { result } = renderHook(() => useProductFeed(), { wrapper });
+
+      act(() => result.current.loadMore());
+
+      await waitFor(() =>
+        expect(result.current.products).toHaveLength(PAGE_SIZE * 3),
+      );
+      expect(requestedSkips).toEqual([PAGE_SIZE * 2]);
+    });
+
+    it('refreshes from the first page even when nothing was fetched on mount', async () => {
+      hydrate(Date.now());
+      serve(100);
+      const { result } = renderHook(() => useProductFeed(), { wrapper });
+
+      act(() => result.current.refresh());
+
+      await waitFor(() =>
+        expect(result.current.products).toHaveLength(PAGE_SIZE),
+      );
+      expect(requestedSkips).toEqual([0]);
+    });
   });
 });

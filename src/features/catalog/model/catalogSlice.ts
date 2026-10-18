@@ -80,6 +80,8 @@ export const selectProductById = entitySelectors.selectById;
 
 export const selectFeedIds = (state: CatalogRootState) => state.catalog.feedIds;
 export const selectFeedTotal = (state: CatalogRootState) => state.catalog.total;
+export const selectLastFetchedAt = (state: CatalogRootState) =>
+  state.catalog.lastFetchedAt;
 
 export const selectFeedProducts = createSelector(
   [entitySelectors.selectEntities, selectFeedIds],

@@ -1,10 +1,5 @@
 import type { ListenerMiddlewareInstance } from '@reduxjs/toolkit';
-import { CACHE_TTL_MS } from '@shared/config/constants';
-import {
-  createCacheEntry,
-  isStale,
-  type CacheEntry,
-} from '@shared/storage/cache';
+import { createCacheEntry, type CacheEntry } from '@shared/storage/cache';
 import { storage } from '@shared/storage/storage';
 import type {
   CatalogRootState,
@@ -40,13 +35,14 @@ const isPersistedEntry = (
   );
 };
 
+// The age of the entry is deliberately not checked here. The TTL governs
+// revalidation, not retention: discarding an old entry would leave an offline
+// launch with nothing to show, which is the case the cache exists for. Whether
+// to refetch on mount is decided from the slice's `lastFetchedAt` instead.
 export const loadPersistedCatalog = (): CatalogState | undefined => {
   const entry = storage.get<unknown>(STORAGE_KEY);
 
-  if (!isPersistedEntry(entry) || isStale(entry, CACHE_TTL_MS)) {
-    return undefined;
-  }
-  return entry.data;
+  return isPersistedEntry(entry) ? entry.data : undefined;
 };
 
 export const registerCatalogPersistence = (

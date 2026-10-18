@@ -56,20 +56,13 @@ describe('loadPersistedCatalog', () => {
     expect(loadPersistedCatalog()).toBeUndefined();
   });
 
-  it('returns undefined once the entry is as old as the ttl', () => {
-    storage.set('catalog', {
-      data: catalogState,
-      cachedAt: NOW - CACHE_TTL_MS,
-    });
-
-    expect(loadPersistedCatalog()).toBeUndefined();
-  });
-
-  it('still returns an entry that is just inside the ttl', () => {
-    storage.set('catalog', {
-      data: catalogState,
-      cachedAt: NOW - CACHE_TTL_MS + 1,
-    });
+  // The TTL decides when to revalidate, never what survives a launch.
+  it.each([
+    ['just inside the ttl', CACHE_TTL_MS - 1],
+    ['exactly the ttl', CACHE_TTL_MS],
+    ['a week past the ttl', 7 * 24 * 60 * 60 * 1000],
+  ])('still returns an entry that is %s old', (_, age) => {
+    storage.set('catalog', { data: catalogState, cachedAt: NOW - age });
 
     expect(loadPersistedCatalog()).toEqual(catalogState);
   });

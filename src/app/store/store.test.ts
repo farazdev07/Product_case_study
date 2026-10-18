@@ -75,11 +75,11 @@ describe('store hydration', () => {
     expect(state.catalog.feedIds).toEqual([]);
   });
 
-  it('starts empty when the persisted entry has expired', () => {
+  it('starts with the persisted catalog however old it is', () => {
     const state = loadStoreWith(set =>
       set({ data: persisted, cachedAt: NOW - 24 * 60 * 60 * 1000 }),
     );
 
-    expect(state.catalog.ids).toEqual([]);
+    expect(state.catalog).toEqual(persisted);
   });
 });
