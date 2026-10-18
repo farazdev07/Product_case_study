@@ -1,4 +1,4 @@
-import { listenerMiddleware, store } from '@app/store';
+import { listenerMiddleware, store } from '@app/store/store';
 
 describe('store', () => {
   it('mounts the api reducer', () => {
