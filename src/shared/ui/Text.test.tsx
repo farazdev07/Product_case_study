@@ -30,4 +30,16 @@ describe('Text', () => {
 
     expect(screen.getByText('Hello')).toHaveStyle({ color: colors.error });
   });
+
+  it('aligns left unless asked to centre', () => {
+    render(<Text>Hello</Text>);
+
+    expect(screen.getByText('Hello')).not.toHaveStyle({ textAlign: 'center' });
+  });
+
+  it('centres its text when asked', () => {
+    render(<Text centered>Hello</Text>);
+
+    expect(screen.getByText('Hello')).toHaveStyle({ textAlign: 'center' });
+  });
 });
