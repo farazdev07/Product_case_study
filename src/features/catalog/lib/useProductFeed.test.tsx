@@ -12,6 +12,10 @@ import {
   useProductFeed,
 } from '@features/catalog/lib/useProductFeed';
 import {
+  setCategory,
+  setSearchTerm,
+} from '@features/catalog/model/filtersSlice';
+import {
   jsonResponse,
   makeCatalogState,
   makeStore,
@@ -54,6 +58,7 @@ describe('canLoadMore', () => {
 describe('useProductFeed', () => {
   let store: TestStore;
   let requestedSkips: number[];
+  let requestedPaths: string[];
 
   const wrapper = ({ children }: PropsWithChildren) => (
     <Provider store={store}>{children}</Provider>
@@ -63,6 +68,7 @@ describe('useProductFeed', () => {
     const page = pagedCatalog(total);
     stubFetch(url => {
       requestedSkips.push(Number(url.searchParams.get('skip')));
+      requestedPaths.push(url.pathname);
       return page(url);
     });
   };
@@ -70,6 +76,7 @@ describe('useProductFeed', () => {
   beforeEach(() => {
     store = makeStore();
     requestedSkips = [];
+    requestedPaths = [];
   });
 
   afterEach(() => {
@@ -275,6 +282,129 @@ describe('useProductFeed', () => {
         expect(result.current.products).toHaveLength(PAGE_SIZE),
       );
       expect(requestedSkips).toEqual([0]);
+    });
+  });
+
+  describe('choosing the endpoint', () => {
+    const filter = (action: Parameters<TestStore['dispatch']>[0]) =>
+      act(() => {
+        store.dispatch(action);
+      });
+
+    it('lists everything by default', async () => {
+      serve(50);
+
+      renderHook(() => useProductFeed(), { wrapper });
+
+      await waitFor(() => expect(requestedPaths).toEqual(['/products']));
+    });
+
+    it('searches when there is a search term', async () => {
+      store.dispatch(setSearchTerm('phone'));
+      serve(50);
+
+      renderHook(() => useProductFeed(), { wrapper });
+
+      await waitFor(() => expect(requestedPaths).toEqual(['/products/search']));
+    });
+
+    it('uses the category endpoint when only a category is chosen', async () => {
+      store.dispatch(setCategory('beauty'));
+      serve(50);
+
+      renderHook(() => useProductFeed(), { wrapper });
+
+      await waitFor(() =>
+        expect(requestedPaths).toEqual(['/products/category/beauty']),
+      );
+    });
+
+    it('searches on the server and ignores the category endpoint when both are set', async () => {
+      store.dispatch(setSearchTerm('phone'));
+      store.dispatch(setCategory('beauty'));
+      serve(50);
+
+      const { result } = renderHook(() => useProductFeed(), { wrapper });
+
+      await waitFor(() => expect(result.current.isFetching).toBe(false));
+      expect(requestedPaths).toEqual(['/products/search']);
+    });
+
+    it('treats a whitespace-only term as no search', async () => {
+      store.dispatch(setSearchTerm('   '));
+      serve(50);
+
+      renderHook(() => useProductFeed(), { wrapper });
+
+      await waitFor(() => expect(requestedPaths).toEqual(['/products']));
+    });
+
+    it('switches endpoint when the filters change and restarts at the first page', async () => {
+      serve(100);
+      const { result } = renderHook(() => useProductFeed(), { wrapper });
+      await waitFor(() =>
+        expect(result.current.products).toHaveLength(PAGE_SIZE),
+      );
+      act(() => result.current.loadMore());
+      await waitFor(() =>
+        expect(result.current.products).toHaveLength(PAGE_SIZE * 2),
+      );
+
+      filter(setSearchTerm('phone'));
+
+      await waitFor(() =>
+        expect(requestedPaths).toEqual([
+          '/products',
+          '/products',
+          '/products/search',
+        ]),
+      );
+      expect(requestedSkips).toEqual([0, PAGE_SIZE, 0]);
+      await waitFor(() => expect(result.current.isFetching).toBe(false));
+    });
+
+    it('hides the previous source feed as soon as the source changes', async () => {
+      serve(50);
+      const { result } = renderHook(() => useProductFeed(), { wrapper });
+      await waitFor(() =>
+        expect(result.current.products).toHaveLength(PAGE_SIZE),
+      );
+
+      filter(setSearchTerm('phone'));
+
+      expect(result.current.products).toEqual([]);
+      await waitFor(() => expect(result.current.isFetching).toBe(false));
+    });
+
+    it('does not show a hydrated feed that belongs to another source', async () => {
+      store = makeStore(makeCatalogState([1, 2, 3], 50, Date.now()));
+      store.dispatch(setSearchTerm('phone'));
+      serve(50);
+
+      const { result } = renderHook(() => useProductFeed(), { wrapper });
+
+      expect(result.current.products).toEqual([]);
+      await waitFor(() => expect(requestedPaths).toEqual(['/products/search']));
+      await waitFor(() => expect(result.current.isFetching).toBe(false));
+    });
+
+    it('pages within the chosen source', async () => {
+      store.dispatch(setCategory('beauty'));
+      serve(50);
+      const { result } = renderHook(() => useProductFeed(), { wrapper });
+      await waitFor(() =>
+        expect(result.current.products).toHaveLength(PAGE_SIZE),
+      );
+
+      act(() => result.current.loadMore());
+
+      await waitFor(() =>
+        expect(result.current.products).toHaveLength(PAGE_SIZE * 2),
+      );
+      expect(requestedPaths).toEqual([
+        '/products/category/beauty',
+        '/products/category/beauty',
+      ]);
     });
   });
 });
