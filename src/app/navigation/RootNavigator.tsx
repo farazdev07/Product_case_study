@@ -1,13 +1,11 @@
 import { useCallback } from 'react';
-import { StyleSheet, View } from 'react-native';
 import {
   createNativeStackNavigator,
   type NativeStackScreenProps,
 } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@app/navigation/types';
-import { colors, spacing } from '@shared/config/theme';
-import { Screen, Text } from '@shared/ui';
-import { CatalogScreen } from '@features/catalog';
+import { colors } from '@shared/config/theme';
+import { CatalogScreen, ProductDetailScreen } from '@features/catalog';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -27,13 +25,7 @@ function CatalogRoute({
 function ProductDetailRoute({
   route,
 }: NativeStackScreenProps<RootStackParamList, 'ProductDetail'>) {
-  return (
-    <Screen>
-      <View style={styles.content}>
-        <Text variant="title">{`Detail for product ${route.params.id}`}</Text>
-      </View>
-    </Screen>
-  );
+  return <ProductDetailScreen productId={route.params.id} />;
 }
 
 export function RootNavigator() {
@@ -54,12 +46,3 @@ export function RootNavigator() {
     </Stack.Navigator>
   );
 }
-
-const styles = StyleSheet.create({
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    gap: spacing.md,
-    padding: spacing.lg,
-  },
-});

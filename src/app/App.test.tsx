@@ -8,36 +8,44 @@ import App from '@app/App';
 import { store } from '@app/store';
 import { baseApi } from '@shared/api/baseApi';
 
-const page = {
-  products: [
-    {
-      id: 1,
-      title: 'Product 1',
-      category: 'beauty',
-      price: 9.99,
-      rating: 4,
-      thumbnail: 'https://example.test/1.webp',
-    },
-  ],
-  total: 1,
-  skip: 0,
-  limit: 20,
+const product = {
+  id: 1,
+  title: 'Product 1',
+  description: 'Only the detail screen shows this',
+  category: 'beauty',
+  price: 9.99,
+  discountPercentage: 0,
+  rating: 4,
+  stock: 3,
+  thumbnail: 'https://example.test/1.webp',
+  images: ['https://example.test/1-1.webp'],
 };
+
+const page = { products: [product], total: 1, skip: 0, limit: 20 };
+
+// RTK Query batches subscription updates on a timer, and the navigation and list
+// libraries schedule frames. Fake timers discard whatever is still pending when
+// a test ends; real ones would fire after Jest has closed the environment.
+jest.useFakeTimers();
 
 describe('App', () => {
   beforeEach(() => {
-    jest.spyOn(globalThis, 'fetch').mockImplementation(
-      async () =>
-        new Response(JSON.stringify(page), {
+    jest.spyOn(globalThis, 'fetch').mockImplementation(async input => {
+      const { pathname } = new URL((input as Request).url);
+      return new Response(
+        JSON.stringify(pathname === '/products/1' ? product : page),
+        {
           headers: { 'content-type': 'application/json' },
-        }),
-    );
+        },
+      );
+    });
   });
 
   afterEach(() => {
     // Unmount first: it arms RTK Query's expiry timers, which the reset cancels.
     cleanup();
     store.dispatch(baseApi.util.resetApiState());
+    jest.clearAllTimers();
     jest.restoreAllMocks();
   });
 
@@ -52,6 +60,8 @@ describe('App', () => {
 
     fireEvent.press(await screen.findByRole('button', { name: 'Product 1' }));
 
-    expect(screen.getByText('Detail for product 1')).toBeOnTheScreen();
+    expect(
+      screen.getByText('Only the detail screen shows this'),
+    ).toBeOnTheScreen();
   });
 });
