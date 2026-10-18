@@ -10,5 +10,6 @@ it('exposes only the reducers, the screens and the listener registrations', () =
     'loadPersistedCatalog',
     'registerCatalogPersistence',
     'registerFeedReset',
+    'registerThumbnailPrefetch',
   ]);
 });

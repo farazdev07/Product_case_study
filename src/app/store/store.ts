@@ -10,6 +10,7 @@ import {
   loadPersistedCatalog,
   registerCatalogPersistence,
   registerFeedReset,
+  registerThumbnailPrefetch,
 } from '@features/catalog';
 import { networkReducer } from '@features/connectivity';
 import {
@@ -54,6 +55,7 @@ export const store = configureStore({
 
 registerCatalogPersistence(listenerMiddleware);
 registerFeedReset(listenerMiddleware);
+registerThumbnailPrefetch(listenerMiddleware);
 registerFavoritesPersistence(listenerMiddleware);
 
 export type RootState = ReturnType<typeof store.getState>;

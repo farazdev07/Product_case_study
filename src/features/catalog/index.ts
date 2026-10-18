@@ -1,5 +1,6 @@
 export { catalogReducer } from '@features/catalog/model/catalogSlice';
 export { registerFeedReset } from '@features/catalog/model/feedReset';
+export { registerThumbnailPrefetch } from '@features/catalog/model/prefetch';
 export { filtersReducer } from '@features/catalog/model/filtersSlice';
 export {
   loadPersistedCatalog,

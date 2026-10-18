@@ -1,3 +1,5 @@
+import { Image } from 'react-native';
+
 type StoredValue = string | number | boolean;
 
 // The factories replace native modules, which cannot load under Node.
@@ -60,3 +62,9 @@ jest.mock(
   'react-native-safe-area-context',
   () => jest.requireActual('react-native-safe-area-context/jest/mock').default,
 );
+
+// React Native's Jest mock of Image.prefetch returns undefined, while the real
+// one returns a promise.
+beforeEach(() => {
+  jest.spyOn(Image, 'prefetch').mockResolvedValue(true);
+});
