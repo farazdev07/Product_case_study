@@ -7,8 +7,8 @@ import { storage } from '@shared/storage/storage';
 import {
   catalogReducer,
   feedCleared,
-  type CatalogState,
 } from '@features/catalog/model/catalogSlice';
+import { makeCatalogState } from '@features/catalog/testing/testStore';
 import {
   loadPersistedCatalog,
   registerCatalogPersistence,
@@ -16,38 +16,7 @@ import {
 
 const NOW = 1_700_000_000_000;
 
-const catalogState: CatalogState = {
-  ids: [1, 2],
-  entities: {
-    1: {
-      id: 1,
-      title: 'One',
-      description: 'd',
-      category: 'beauty',
-      price: 1,
-      discountPercentage: 0,
-      rating: 4,
-      stock: 1,
-      thumbnail: 't',
-      images: [],
-    },
-    2: {
-      id: 2,
-      title: 'Two',
-      description: 'd',
-      category: 'beauty',
-      price: 2,
-      discountPercentage: 0,
-      rating: 4,
-      stock: 1,
-      thumbnail: 't',
-      images: [],
-    },
-  },
-  feedIds: [1, 2],
-  total: 10,
-  lastFetchedAt: NOW,
-};
+const catalogState = makeCatalogState([1, 2], 10);
 
 describe('loadPersistedCatalog', () => {
   beforeEach(() => {
