@@ -10,8 +10,11 @@ import {
 } from '@testing-library/react-native';
 import { PAGE_SIZE, SEARCH_DEBOUNCE_MS } from '@shared/config/constants';
 import { CatalogScreen } from '@features/catalog/ui/CatalogScreen';
+import { networkStatusChanged } from '@features/connectivity';
 import {
   clearFilters,
+  setCategory,
+  setMaxPrice,
   setSearchTerm,
 } from '@features/catalog/model/filtersSlice';
 import {
@@ -471,6 +474,148 @@ describe('CatalogScreen', () => {
         screen.queryByText('No products match these filters.'),
       ).not.toBeOnTheScreen();
       expect(requested).toEqual([0, 1]);
+    });
+  });
+
+  describe('offline', () => {
+    const cachedCatalog = () => {
+      const state = makeCatalogState([1, 2, 3], 50);
+      state.entities = {
+        1: { ...makeProduct(1), category: 'beauty', price: 10 },
+        2: { ...makeProduct(2), category: 'laptops', price: 900 },
+        3: { ...makeProduct(3), category: 'beauty', price: 50 },
+      };
+      return state;
+    };
+
+    beforeEach(() => {
+      store = makeStore(cachedCatalog(), { feedReset: true, isOnline: false });
+    });
+
+    it('filters the cached products by category without a request', () => {
+      const fetchSpy = stubFetch(pagedCatalog(50));
+      renderScreen();
+
+      act(() => {
+        store.dispatch(setCategory('beauty'));
+      });
+
+      expect(screen.getByText('Product 1')).toBeOnTheScreen();
+      expect(screen.getByText('Product 3')).toBeOnTheScreen();
+      expect(screen.queryByText('Product 2')).not.toBeOnTheScreen();
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it('shows products from outside the stored feed for the chosen category', () => {
+      store = makeStore(
+        {
+          ...cachedCatalog(),
+          feedIds: [2],
+        },
+        { feedReset: true, isOnline: false },
+      );
+      renderScreen();
+
+      act(() => {
+        store.dispatch(setCategory('beauty'));
+      });
+
+      expect(screen.getByText('Product 1')).toBeOnTheScreen();
+      expect(screen.queryByText('Product 2')).not.toBeOnTheScreen();
+    });
+
+    it('ignores pull-to-refresh and end-reached without a request', () => {
+      const fetchSpy = stubFetch(pagedCatalog(50));
+      renderScreen();
+
+      fireEvent(screen.getByTestId('product-feed'), 'refresh');
+      fireEvent(screen.getByTestId('product-feed'), 'endReached');
+
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(screen.getByText('Product 1')).toBeOnTheScreen();
+    });
+
+    it('applies price filters to the cache', () => {
+      renderScreen();
+
+      act(() => {
+        store.dispatch(setMaxPrice(100));
+      });
+
+      expect(screen.queryByText('Product 2')).not.toBeOnTheScreen();
+      expect(screen.getByText('Product 3')).toBeOnTheScreen();
+    });
+
+    it('restores the full cached feed when the filters are cleared', () => {
+      renderScreen();
+      act(() => {
+        store.dispatch(setCategory('laptops'));
+      });
+      expect(screen.queryByText('Product 1')).not.toBeOnTheScreen();
+
+      act(() => {
+        store.dispatch(clearFilters());
+      });
+
+      expect(screen.getByText('Product 1')).toBeOnTheScreen();
+      expect(screen.getByText('Product 2')).toBeOnTheScreen();
+      expect(screen.getByText('Product 3')).toBeOnTheScreen();
+    });
+
+    it('says nothing matches, not that the device is offline, when the cache has no match', () => {
+      renderScreen();
+
+      act(() => {
+        store.dispatch(setSearchTerm('zzz'));
+      });
+
+      expect(screen.getByText('No results for "zzz".')).toBeOnTheScreen();
+      expect(screen.queryByText('You are offline')).not.toBeOnTheScreen();
+    });
+
+    it('says the device is offline when there is no cache at all', () => {
+      store = makeStore(undefined, { isOnline: false });
+      stubFetch(pagedCatalog(50));
+
+      renderScreen();
+
+      expect(screen.getByText('You are offline')).toBeOnTheScreen();
+    });
+
+    it('does not retry while offline', () => {
+      store = makeStore(undefined, { isOnline: false });
+      const fetchSpy = stubFetch(pagedCatalog(50));
+      renderScreen();
+
+      fireEvent.press(screen.getByRole('button', { name: 'Retry' }));
+
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it('fetches the selected source normally once the connection returns', async () => {
+      const requested: string[] = [];
+      stubFetch(url => {
+        requested.push(url.pathname);
+        return pagedCatalog(50)(url);
+      });
+      renderScreen();
+      act(() => {
+        store.dispatch(setCategory('beauty'));
+      });
+      expect(requested).toEqual([]);
+
+      act(() => {
+        store.dispatch(
+          networkStatusChanged({ isOnline: true, isInternetReachable: true }),
+        );
+      });
+
+      await waitFor(() =>
+        expect(requested).toContain('/products/category/beauty'),
+      );
+      await waitFor(() =>
+        expect(store.getState().catalog.feedKey).toBe('category:beauty'),
+      );
     });
   });
 });

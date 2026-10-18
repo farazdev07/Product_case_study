@@ -3,7 +3,10 @@ import type {
   FiltersRootState,
   FiltersState,
 } from '@features/catalog/model/filtersSlice';
-import { selectVisibleProducts } from '@features/catalog/model/selectors';
+import {
+  selectCachedProducts,
+  selectVisibleProducts,
+} from '@features/catalog/model/selectors';
 import type { Product } from '@features/catalog/model/types';
 import {
   makeCatalogState,
@@ -202,5 +205,47 @@ describe('selectVisibleProducts', () => {
 
       expect(state.catalog.feedIds).toEqual([1, 2, 3, 4]);
     });
+  });
+});
+
+describe('selectCachedProducts', () => {
+  const cache = [
+    product(1, { title: 'Red Lipstick', category: 'beauty', price: 12 }),
+    product(2, { title: 'Laptop Pro', category: 'laptops', price: 900 }),
+    product(3, { title: 'Red Mascara', category: 'beauty', price: 30 }),
+    product(4, { title: 'Phone', category: 'smartphones', price: 400 }),
+  ];
+  const idsFromCache = (filters: Partial<FiltersState>) => {
+    const state = stateOf(cache, filters);
+    // Only the first product belongs to the stored feed; the rest are cached
+    // from other sources.
+    state.catalog.feedIds = [1];
+    return selectCachedProducts(state).map(item => item.id);
+  };
+
+  it('returns every cached product when nothing is filtered', () => {
+    expect(idsFromCache({})).toEqual([1, 2, 3, 4]);
+  });
+
+  it('filters by category across the whole cache', () => {
+    expect(idsFromCache({ categorySlug: 'beauty' })).toEqual([1, 3]);
+  });
+
+  it('applies price and rating on top of the category', () => {
+    expect(idsFromCache({ categorySlug: 'beauty', maxPrice: 20 })).toEqual([1]);
+  });
+
+  it('matches the search term against titles, ignoring case and spacing', () => {
+    expect(idsFromCache({ searchTerm: '  RED ' })).toEqual([1, 3]);
+  });
+
+  it('combines a search term with a category', () => {
+    expect(
+      idsFromCache({ searchTerm: 'red', categorySlug: 'laptops' }),
+    ).toEqual([]);
+  });
+
+  it('sorts the cache', () => {
+    expect(idsFromCache({ sortBy: 'price-desc' })).toEqual([2, 4, 3, 1]);
   });
 });

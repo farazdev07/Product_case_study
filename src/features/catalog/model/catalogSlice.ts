@@ -118,6 +118,7 @@ const entitySelectors = productsAdapter.getSelectors<CatalogRootState>(
 );
 
 export const selectProductById = entitySelectors.selectById;
+export const selectAllProducts = entitySelectors.selectAll;
 
 export const selectFeedIds = (state: CatalogRootState) => state.catalog.feedIds;
 export const selectFeedKey = (state: CatalogRootState) => state.catalog.feedKey;

@@ -1,5 +1,8 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { selectFeedProducts } from '@features/catalog/model/catalogSlice';
+import {
+  selectAllProducts,
+  selectFeedProducts,
+} from '@features/catalog/model/catalogSlice';
 import { resolveFeedSource } from '@features/catalog/model/feedSource';
 import {
   selectFilters,
@@ -31,6 +34,29 @@ const sortProducts = (products: Product[], sortBy: SortBy): Product[] => {
     .map(({ product }) => product);
 };
 
+type Criteria = {
+  category: string | null;
+  term: string;
+  maxPrice: number | null;
+  minRating: number | null;
+  sortBy: SortBy;
+};
+
+const narrow = (
+  products: Product[],
+  { category, term, maxPrice, minRating, sortBy }: Criteria,
+): Product[] =>
+  sortProducts(
+    products.filter(
+      product =>
+        (category === null || product.category === category) &&
+        (term === '' || product.title.toLowerCase().includes(term)) &&
+        (maxPrice === null || product.price <= maxPrice) &&
+        (minRating === null || product.rating >= minRating),
+    ),
+    sortBy,
+  );
+
 // Price and rating filter only the pages loaded so far. The API has no price or
 // rating parameters, so narrowing to "under $20" cannot ask the server for more
 // matches: products on pages that were never fetched are not considered, and
@@ -38,22 +64,34 @@ const sortProducts = (products: Product[], sortBy: SortBy): Product[] => {
 // chosen during a search, which dummyjson cannot combine with the search.
 export const selectVisibleProducts = createSelector(
   [selectFeedProducts, selectFilters],
-  (products, filters) => {
-    const { maxPrice, minRating, sortBy } = filters;
-    // With no search the category endpoint has already narrowed the feed on the
-    // server; only a category combined with a search is left to the client.
-    const category =
-      resolveFeedSource(filters).kind === 'search'
-        ? filters.categorySlug
-        : null;
+  (products, filters) =>
+    narrow(products, {
+      // With no search the category endpoint has already narrowed the feed on
+      // the server; only a category combined with a search is left to the client.
+      category:
+        resolveFeedSource(filters).kind === 'search'
+          ? filters.categorySlug
+          : null,
+      term: '',
+      maxPrice: filters.maxPrice,
+      minRating: filters.minRating,
+      sortBy: filters.sortBy,
+    }),
+);
 
-    const matching = products.filter(
-      product =>
-        (category === null || product.category === category) &&
-        (maxPrice === null || product.price <= maxPrice) &&
-        (minRating === null || product.rating >= minRating),
-    );
-
-    return sortProducts(matching, sortBy);
-  },
+// Offline there is no server to narrow anything, so every filter is applied to
+// the whole cache instead of to the feed that happened to be loaded for the
+// previous filter. The search term is matched against titles only, which only
+// approximates the server's search; it exists so a typed term never shows
+// products that do not match it.
+export const selectCachedProducts = createSelector(
+  [selectAllProducts, selectFilters],
+  (products, filters) =>
+    narrow(products, {
+      category: filters.categorySlug,
+      term: filters.searchTerm.trim().toLowerCase(),
+      maxPrice: filters.maxPrice,
+      minRating: filters.minRating,
+      sortBy: filters.sortBy,
+    }),
 );

@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { CACHE_TTL_MS, PAGE_SIZE } from '@shared/config/constants';
 import { isStale } from '@shared/storage/cache';
+import { selectIsOnline } from '@features/connectivity';
 import {
   useGetProductsByCategoryQuery,
   useGetProductsQuery,
@@ -9,6 +10,7 @@ import {
 } from '@features/catalog/api/catalogApi';
 import { isNetworkError } from '@features/catalog/lib/emptyState';
 import {
+  selectAllProducts,
   selectFeedIds,
   selectFeedKey,
   selectFeedTotal,
@@ -19,7 +21,10 @@ import {
   resolveFeedSource,
 } from '@features/catalog/model/feedSource';
 import { selectFilters } from '@features/catalog/model/filtersSlice';
-import { selectVisibleProducts } from '@features/catalog/model/selectors';
+import {
+  selectCachedProducts,
+  selectVisibleProducts,
+} from '@features/catalog/model/selectors';
 import type { Product } from '@features/catalog/model/types';
 
 type LoadMoreGuard = {
@@ -52,13 +57,23 @@ export function useProductFeed() {
   const feedTotal = useSelector(selectFeedTotal);
   const lastFetchedAt = useSelector(selectLastFetchedAt);
   const visibleProducts = useSelector(selectVisibleProducts);
+  const cachedProducts = useSelector(selectCachedProducts);
+  const hasCache = useSelector(selectAllProducts).length > 0;
+  const isOnline = useSelector(selectIsOnline);
 
   // The stored feed belongs to whichever source produced it, which after a
   // restart may not be the one now selected. It is shown, and paged, only when
   // the two agree.
   const feedMatches = feedKey === sourceKey;
   const loaded = feedMatches ? feedIds.length : 0;
-  const products = feedMatches ? visibleProducts : NO_PRODUCTS;
+  // Offline, the cache is the source of truth: every filter applies to all
+  // cached products and no request is made, so the list never depends on which
+  // source the stored feed happens to belong to.
+  const products = !isOnline
+    ? cachedProducts
+    : feedMatches
+    ? visibleProducts
+    : NO_PRODUCTS;
 
   // The TTL governs revalidation, not retention: a hydrated feed is always
   // shown, and only a missing, mismatched or older-than-TTL one is refetched on
@@ -88,14 +103,14 @@ export function useProductFeed() {
   const all = useGetProductsQuery(
     { limit: PAGE_SIZE, skip },
     {
-      skip: !enabled || source.kind !== 'all',
+      skip: !isOnline || !enabled || source.kind !== 'all',
       refetchOnMountOrArgChange: true,
     },
   );
   const search = useSearchProductsQuery(
     { q: source.kind === 'search' ? source.term : '', limit: PAGE_SIZE, skip },
     {
-      skip: !enabled || source.kind !== 'search',
+      skip: !isOnline || !enabled || source.kind !== 'search',
       refetchOnMountOrArgChange: true,
     },
   );
@@ -106,7 +121,7 @@ export function useProductFeed() {
       skip,
     },
     {
-      skip: !enabled || source.kind !== 'category',
+      skip: !isOnline || !enabled || source.kind !== 'category',
       refetchOnMountOrArgChange: true,
     },
   );
@@ -123,29 +138,41 @@ export function useProductFeed() {
   // more than one page. Two end-reached events before a re-render compute the
   // same skip, so the state update is idempotent without an in-flight ref.
   const loadMore = useCallback(() => {
-    if (canLoadMore({ isFetching, isError, loaded, total })) {
+    if (isOnline && canLoadMore({ isFetching, isError, loaded, total })) {
       setStored({ key: sourceKey, skip: loaded, enabled: true });
     }
-  }, [isFetching, isError, loaded, total, sourceKey]);
+  }, [isOnline, isFetching, isError, loaded, total, sourceKey]);
 
+  // A skipped query cannot be refetched, and offline every query is skipped.
   const refresh = useCallback(() => {
+    if (!isOnline) {
+      return;
+    }
     if (enabled && skip === 0) {
       refetch();
     } else {
       setStored({ key: sourceKey, skip: 0, enabled: true });
     }
-  }, [enabled, skip, refetch, sourceKey]);
+  }, [isOnline, enabled, skip, refetch, sourceKey]);
+
+  const retry = useCallback(() => {
+    if (isOnline) {
+      refetch();
+    }
+  }, [isOnline, refetch]);
 
   return {
     products,
     isFetching,
     isError,
     isNetworkError: isError && isNetworkError(error),
-    hasMore: loaded < total,
+    hasMore: isOnline && loaded < total,
+    isOffline: !isOnline,
+    hasCache,
     isLoadingMore: isFetching && skip > 0,
     isRefreshing: isFetching && skip === 0 && products.length > 0,
     loadMore,
     refresh,
-    retry: refetch,
+    retry,
   };
 }

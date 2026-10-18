@@ -124,6 +124,8 @@ The rule shapes the design in visible ways. `favorites` depends on `connectivity
 
 **TTL governs revalidation, not retention.** The cache is never discarded for age. The ten-minute TTL decides only whether to refetch on mount. Discarding stale entries would empty the screen for exactly the user the requirement exists to protect, the one who opens the app offline some hours after the last use. An old cache shown with a banner is better than an empty screen.
 
+**The cache is the source of truth while offline.** When the device is offline, category, price, rating, sort and the search term are applied client-side to every cached product, no request is made, and the stored feed is left in place. The search term is matched against product titles only, an approximation of the server's search. Selecting a category the cache has no products for shows "No products match these filters" rather than an offline message, and Clear all restores the full cached list. When the connection returns, the selected source is fetched normally and replaces the feed.
+
 Writes are throttled to one per second so that paging does not hammer storage. The favourites queue is the exception and is written on every change, because it is user data and a kill must not lose it.
 
 ### b. Offline queue persistence and reconnection
@@ -187,6 +189,8 @@ Device tests were also run by hand. The sequence below was run on the Pixel_8_AP
 4. **Offline cold start.** Force-stop the app and relaunch it while still offline. Products, the "Saved" states and the queue all survive, and the category chips are present.
 5. **Reconnect.** Turn wifi on; the blue "Syncing Queued Actions" bar appears, the queue empties, and the bar disappears.
 
+Offline filtering was checked on an Android release build: after loading about 60 products online, the app was relaunched with the network off, and choosing Beauty, then Fragrances, then Kitchen Accessories each showed that category's cached products under the offline banner. Clear all restored the full list, and turning the network back on removed the banner and loaded the selected category's images.
+
 The cold-start check was repeated on a release build, twice: once with a fresh cache and once with the cache older than the TTL (the TTL was temporarily set to 10 seconds and restored). In both cases the products and category chips rendered offline; at the end of the cached list the footer showed "Could not load products." with a Retry button, and thumbnails of products the device had never displayed were blank, because images are not cached by the app.
 
 The same functional checks were run on iOS (iPhone 17 simulator, iOS 27.0), driven by an XCUITest harness kept outside the repository:
@@ -230,7 +234,6 @@ CI (`.github/workflows/ci.yml`) runs on every push and pull request, on Node 22 
 ## 8. Known limitations
 
 - **iOS has run on the simulator only.** It has not been run on a physical iPhone. On the simulator, a running app that went offline did not return to online after the host network came back (checked for three minutes and across a background and foreground cycle, with the host reaching the API throughout); a fresh launch reads the correct state. Whether this is the simulator not delivering network-path updates or a NetInfo reachability issue was not isolated, and the live reconnect on iOS is therefore unverified. Android reconnects correctly.
-- **Changing a filter while offline empties the screen.** A category or search change clears the feed so stale pages are not shown under the new source, and while offline the replacement cannot be fetched, so the user sees the offline empty state until the connection returns. The products stay cached; a cached copy of each source's feed would fix it.
 - **iOS shows no thumbnails offline in the release build.** Images are fetched over HTTP and iOS did not keep them across the offline relaunch, whereas the Android image pipeline did for items it had shown.
 - **Smoothness is unproven on hardware.** Frame measurements come from a software-rendered emulator on a loaded host and cannot support a claim of 60 fps. The next step is to profile on a mid-range physical device.
 - **The sync target is a stand-in.** `PUT /products/{id}` persists nothing, so delivery is exercised but not stored. A real favourites endpoint would also need idempotency keys, since a request can succeed server-side and fail on the way back, and the retry would then be a duplicate.

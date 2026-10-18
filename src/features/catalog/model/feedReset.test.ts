@@ -1,4 +1,5 @@
 import { configureStore, createListenerMiddleware } from '@reduxjs/toolkit';
+import { networkReducer } from '@features/connectivity';
 import { catalogReducer } from '@features/catalog/model/catalogSlice';
 import { registerFeedReset } from '@features/catalog/model/feedReset';
 import {
@@ -21,15 +22,20 @@ const defaults: FiltersState = {
   sortBy: 'default',
 };
 
-const makeStore = (searchTerm = '') => {
+const makeStore = (searchTerm = '', isOnline = true) => {
   const listener = createListenerMiddleware();
   registerFeedReset(listener);
 
   return configureStore({
-    reducer: { catalog: catalogReducer, filters: filtersReducer },
+    reducer: {
+      catalog: catalogReducer,
+      filters: filtersReducer,
+      network: networkReducer,
+    },
     preloadedState: {
       catalog: makeCatalogState([1, 2, 3], 50),
       filters: { ...defaults, searchTerm },
+      network: { isOnline, isInternetReachable: isOnline },
     },
     middleware: getDefaultMiddleware =>
       getDefaultMiddleware().prepend(listener.middleware),
@@ -37,6 +43,23 @@ const makeStore = (searchTerm = '') => {
 };
 
 describe('registerFeedReset', () => {
+  it('keeps the feed when the category changes while offline', () => {
+    const store = makeStore('', false);
+
+    store.dispatch(setCategory('beauty'));
+
+    expect(store.getState().catalog.feedIds).toEqual([1, 2, 3]);
+    expect(store.getState().catalog.total).toBe(50);
+  });
+
+  it('keeps the feed when the search term changes while offline', () => {
+    const store = makeStore('', false);
+
+    store.dispatch(setSearchTerm('phone'));
+
+    expect(store.getState().catalog.feedIds).toEqual([1, 2, 3]);
+  });
+
   it('empties the feed when the search term changes', () => {
     const store = makeStore();
 

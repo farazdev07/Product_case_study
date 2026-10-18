@@ -44,6 +44,8 @@ export function CatalogScreen({ onProductPress }: Props) {
     isLoadingMore,
     isRefreshing,
     hasMore,
+    isOffline,
+    hasCache,
     loadMore,
     refresh,
     retry,
@@ -70,6 +72,8 @@ export function CatalogScreen({ onProductPress }: Props) {
         isError,
         isNetworkError,
         hasMore,
+        isOffline,
+        hasCache,
         searchTerm,
         hasActiveFilters,
       })}

@@ -11,6 +11,8 @@ type EmptyStateInput = {
   isError: boolean;
   isNetworkError: boolean;
   hasMore: boolean;
+  isOffline: boolean;
+  hasCache: boolean;
   searchTerm: string;
   hasActiveFilters: boolean;
 };
@@ -22,11 +24,20 @@ export const getEmptyState = ({
   isError,
   isNetworkError,
   hasMore,
+  isOffline,
+  hasCache,
   searchTerm,
   hasActiveFilters,
 }: EmptyStateInput): EmptyState => {
   if (isFetching) {
     return { kind: 'loading' };
+  }
+  // Offline the cache is filtered in place, so an empty list is either no cache
+  // at all or a filter that matches nothing in it.
+  if (isOffline) {
+    return hasCache
+      ? { kind: 'no-results', searchTerm: searchTerm.trim() }
+      : { kind: 'offline', filtered: hasActiveFilters };
   }
   if (isError) {
     return isNetworkError

@@ -1,5 +1,9 @@
 // Shared by the catalog's tests only; nothing in the app imports this.
-import { configureStore, createListenerMiddleware } from '@reduxjs/toolkit';
+import {
+  combineReducers,
+  configureStore,
+  createListenerMiddleware,
+} from '@reduxjs/toolkit';
 import { baseApi } from '@shared/api/baseApi';
 import { registerFeedReset } from '@features/catalog/model/feedReset';
 import { filtersReducer } from '@features/catalog/model/filtersSlice';
@@ -7,6 +11,7 @@ import {
   catalogReducer,
   type CatalogState,
 } from '@features/catalog/model/catalogSlice';
+import { networkReducer } from '@features/connectivity';
 import { favoritesReducer } from '@features/favorites';
 import type { Category, Product } from '@features/catalog/model/types';
 
@@ -43,21 +48,31 @@ export const makeCatalogState = (
 // store registers, for tests that change the filters.
 export const makeStore = (
   catalog?: CatalogState,
-  { feedReset = false }: { feedReset?: boolean } = {},
+  {
+    feedReset = false,
+    isOnline = true,
+  }: { feedReset?: boolean; isOnline?: boolean } = {},
 ) => {
   const listener = createListenerMiddleware();
   if (feedReset) {
     registerFeedReset(listener);
   }
 
+  const reducer = combineReducers({
+    [baseApi.reducerPath]: baseApi.reducer,
+    catalog: catalogReducer,
+    filters: filtersReducer,
+    favorites: favoritesReducer,
+    network: networkReducer,
+  });
+  const preloadedState: Partial<ReturnType<typeof reducer>> = {
+    network: { isOnline, isInternetReachable: isOnline },
+    ...(catalog && { catalog }),
+  };
+
   return configureStore({
-    reducer: {
-      [baseApi.reducerPath]: baseApi.reducer,
-      catalog: catalogReducer,
-      filters: filtersReducer,
-      favorites: favoritesReducer,
-    },
-    preloadedState: catalog ? { catalog } : undefined,
+    reducer,
+    preloadedState,
     middleware: getDefaultMiddleware =>
       getDefaultMiddleware()
         .prepend(listener.middleware)

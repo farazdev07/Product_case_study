@@ -8,6 +8,8 @@ const idle = {
   isError: false,
   isNetworkError: false,
   hasMore: false,
+  isOffline: false,
+  hasCache: false,
   searchTerm: '',
   hasActiveFilters: false,
 };
@@ -40,6 +42,25 @@ describe('getEmptyState', () => {
         hasActiveFilters: true,
       }),
     ).toEqual({ kind: 'offline', filtered: true });
+  });
+
+  it('says offline when there is nothing cached to show', () => {
+    expect(getEmptyState({ ...idle, isOffline: true })).toEqual({
+      kind: 'offline',
+      filtered: false,
+    });
+  });
+
+  it('reports no matches, not a lost connection, when the cache has none', () => {
+    expect(
+      getEmptyState({
+        ...idle,
+        isOffline: true,
+        hasCache: true,
+        hasActiveFilters: true,
+        searchTerm: 'zzz',
+      }),
+    ).toEqual({ kind: 'no-results', searchTerm: 'zzz' });
   });
 
   it('reports a server failure as a plain error', () => {
