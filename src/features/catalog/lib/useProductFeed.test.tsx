@@ -13,6 +13,7 @@ import {
 } from '@features/catalog/lib/useProductFeed';
 import {
   setCategory,
+  setMaxPrice,
   setSearchTerm,
 } from '@features/catalog/model/filtersSlice';
 import {
@@ -385,6 +386,19 @@ describe('useProductFeed', () => {
 
       expect(result.current.products).toEqual([]);
       await waitFor(() => expect(requestedPaths).toEqual(['/products/search']));
+      await waitFor(() => expect(result.current.isFetching).toBe(false));
+    });
+
+    it('pages from the loaded count, not the filtered one, when a client filter hides rows', async () => {
+      store = makeStore(makeCatalogState([1, 2, 3], 50, Date.now()));
+      store.dispatch(setMaxPrice(0.01));
+      serve(50);
+      const { result } = renderHook(() => useProductFeed(), { wrapper });
+      expect(result.current.products).toEqual([]);
+
+      act(() => result.current.loadMore());
+
+      await waitFor(() => expect(requestedSkips).toEqual([3]));
       await waitFor(() => expect(result.current.isFetching).toBe(false));
     });
 

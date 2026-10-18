@@ -10,7 +10,6 @@ import {
 import {
   selectFeedIds,
   selectFeedKey,
-  selectFeedProducts,
   selectFeedTotal,
   selectLastFetchedAt,
 } from '@features/catalog/model/catalogSlice';
@@ -19,6 +18,7 @@ import {
   resolveFeedSource,
 } from '@features/catalog/model/feedSource';
 import { selectFilters } from '@features/catalog/model/filtersSlice';
+import { selectVisibleProducts } from '@features/catalog/model/selectors';
 import type { Product } from '@features/catalog/model/types';
 
 type LoadMoreGuard = {
@@ -50,14 +50,14 @@ export function useProductFeed() {
   const feedKey = useSelector(selectFeedKey);
   const feedTotal = useSelector(selectFeedTotal);
   const lastFetchedAt = useSelector(selectLastFetchedAt);
-  const feedProducts = useSelector(selectFeedProducts);
+  const visibleProducts = useSelector(selectVisibleProducts);
 
   // The stored feed belongs to whichever source produced it, which after a
   // restart may not be the one now selected. It is shown, and paged, only when
   // the two agree.
   const feedMatches = feedKey === sourceKey;
   const loaded = feedMatches ? feedIds.length : 0;
-  const products = feedMatches ? feedProducts : NO_PRODUCTS;
+  const products = feedMatches ? visibleProducts : NO_PRODUCTS;
 
   // The TTL governs revalidation, not retention: a hydrated feed is always
   // shown, and only a missing, mismatched or older-than-TTL one is refetched on
