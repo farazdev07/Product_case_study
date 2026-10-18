@@ -88,8 +88,14 @@ export function useProductFeed() {
       lastFetchedAt === null ||
       isStale({ data: null, cachedAt: lastFetchedAt }, CACHE_TTL_MS),
   }));
-  // A different source restarts at the first page. Deriving this from the key,
-  // rather than resetting in an effect, means the stale offset is never used.
+  // A different source restarts at the first page. The stored value follows the
+  // source while rendering (the supported way to derive state from changing
+  // input): if it only ever stayed on the first source's key, returning to that
+  // source would revive its old offset, request a late page of a feed that was
+  // cleared, and have the slice drop it, leaving the list empty.
+  if (stored.key !== sourceKey) {
+    setStored({ key: sourceKey, skip: 0, enabled: true });
+  }
   const current: Pagination =
     stored.key === sourceKey
       ? stored

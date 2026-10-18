@@ -402,6 +402,33 @@ describe('useProductFeed', () => {
       await waitFor(() => expect(result.current.isFetching).toBe(false));
     });
 
+    it('refetches a source that was fully loaded when it is chosen again', async () => {
+      store = makeStore(undefined, { feedReset: true });
+      serve(PAGE_SIZE + 5);
+      const { result } = renderHook(() => useProductFeed(), { wrapper });
+      await waitFor(() =>
+        expect(result.current.products).toHaveLength(PAGE_SIZE),
+      );
+      act(() => result.current.loadMore());
+      await waitFor(() =>
+        expect(result.current.products).toHaveLength(PAGE_SIZE + 5),
+      );
+      expect(result.current.hasMore).toBe(false);
+
+      filter(setCategory('beauty'));
+      await waitFor(() =>
+        expect(result.current.products).toHaveLength(PAGE_SIZE),
+      );
+      filter(setCategory(null));
+
+      await waitFor(() =>
+        expect(result.current.products).toHaveLength(PAGE_SIZE),
+      );
+      expect(requestedPaths.at(-1)).toBe('/products');
+      expect(requestedSkips.at(-1)).toBe(0);
+      expect(result.current.hasMore).toBe(true);
+    });
+
     it('pages within the chosen source', async () => {
       store.dispatch(setCategory('beauty'));
       serve(50);
