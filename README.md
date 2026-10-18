@@ -171,14 +171,20 @@ The banner has three states, as the brief words them: "Offline — Serving Cache
 
 **`FavoriteButton` reads its own state.** It takes only a primitive `productId`, selects a single boolean from the store and owns its toggle callback. If the card passed `isFavorite` and an `onToggle`, every toggle would change the card's props and break its memoisation; passing the whole favourites set down would re-render every card on every change. With this design, tapping the button re-renders that button only. A test asserts the card does not re-render when its favourite state changes. The button is a sibling of the card's pressable area rather than a child so that screen readers can reach it.
 
-**Measured numbers.** Release build, arm64 emulator (Pixel_8_API_35), 40 alternating flings per run, `dumpsys gfxinfo`, on a host with a load average between 8 and 13:
+**Measured numbers.** Release build on a physical device: realme RMX3834, Android 15, 720 x 1600 display rendering at 60 Hz (the panel also supports 90 Hz), while charging, with the device at normal temperature. Each run is 40 alternating flings (`adb shell input swipe`, 250 ms each, 20 down and 20 up) over the cached feed, read with `dumpsys gfxinfo`, three runs per target:
 
-| Target | Runs | Janky frames | 50th percentile | 90th percentile | 99th percentile |
-| --- | --- | --- | --- | --- | --- |
-| ProductCatalog (release) | 3 | 51.0%, 52.3%, 59.4% | 48 to 57 ms | 109 to 113 ms | 150 ms |
-| Stock Settings app | 2 | 50.1%, 56.0% | 48 to 53 ms | 109 to 150 ms | 200 to 600 ms |
+| Target | Run | Frames | Janky frames | 50th percentile | 90th percentile | 99th percentile |
+| --- | --- | --- | --- | --- | --- | --- |
+| ProductCatalog (release) | 1 | 1461 | 1.23% | 11 ms | 15 ms | 26 ms |
+| ProductCatalog (release) | 2 | 1047 | 0.00% | 10 ms | 11 ms | 15 ms |
+| ProductCatalog (release) | 3 | 1045 | 0.10% | 10 ms | 11 ms | 15 ms |
+| Settings (control) | 1 | 2448 | 4.33% | 18 ms | 34 ms | 42 ms |
+| Settings (control) | 2 | 2448 | 4.29% | 18 ms | 34 ms | 40 ms |
+| Settings (control) | 3 | 2438 | 4.51% | 19 ms | 34 ms | 42 ms |
 
-These numbers do not show a smooth list in absolute terms. The emulator renders with a software-translated GL path (Apple M2 host), and the stock Settings app, which does no work of ours, scores the same. The valid conclusion is narrower: under identical conditions the catalog list is no worse than a system list. A verdict on absolute smoothness needs a physical device, which was not available.
+At a 60 Hz refresh a frame has about 16.7 ms, and the catalog list's 90th percentile is within it in the last two runs. The first run is the warm-up after launch and is the worst of the three. The Settings app is a system list used as a control; it scored worse than the catalog on this device, so the figures are not simply a property of the device.
+
+A secondary measurement was taken earlier on the arm64 emulator (Pixel_8_API_35, release build, same method, host load average 8 to 13): the catalog list scored 51.0%, 52.3% and 59.4% janky frames, and the Settings app 50.1% and 56.0%. The emulator renders through a software-translated GL path, so those numbers do not say anything about absolute smoothness; they only showed that the catalog list was no worse than a system list there. No iOS scroll measurement was taken (see section 5).
 
 ## 5. Testing
 
@@ -253,7 +259,7 @@ CI (`.github/workflows/ci.yml`) runs on every push and pull request, on Node 22 
 
 - **iOS has run on simulators only, and live reconnect there was not observed.** It has not been run on a physical iPhone or iPad. What was observed on the iPhone 17 simulator (iOS 27.0): the offline banner appears within seconds when the host's wifi is turned off, so offline detection works live; after the host's wifi was turned back on, the running app still showed the offline banner after 3 minutes, while the host could reach the API and the same app launched fresh read the correct online state. Android reconnects correctly. Calling `NetInfo.refresh()` when the app returned to the foreground (backgrounded by launching Safari) did not change this and was removed. The cause was not confirmed, so none is claimed, and live reconnect on iOS remains unverified.
 - **iOS shows no thumbnails offline.** The image CDN sends `Cache-Control: no-store` on the thumbnails, which the iOS URL cache honours, so nothing is kept for an offline launch. Raising `URLCache` capacity to 50 MB memory and 200 MB disk was tried and made no difference (still no thumbnails, and `Cache.db` unchanged), so it was not kept. Fixing this needs a cache the app controls, such as an image library with its own disk cache, or the server changing the header.
-- **Smoothness is unproven on hardware.** Frame measurements come from a software-rendered emulator on a loaded host and cannot support a claim of 60 fps. The next step is to profile on a mid-range physical device.
+- **Scroll smoothness is measured on Android hardware only.** The device figures in section 4c are from one mid-range phone at 60 Hz with synthetic flings, not a user's hands. iOS has no frame measurement at all.
 - **The sync target is a stand-in.** `PUT /products/{id}` persists nothing, so delivery is exercised but not stored. A real favourites endpoint would also need idempotency keys, since a request can succeed server-side and fail on the way back, and the retry would then be a duplicate.
 - **Attempts are counted during connection loss.** A request that fails because connectivity dropped mid-flight counts toward the five-attempt cap. Distinguishing those failures from server rejections would be more accurate.
 - **The queue is unbounded.** There is no cap on queued actions and no conflict resolution against server state.
