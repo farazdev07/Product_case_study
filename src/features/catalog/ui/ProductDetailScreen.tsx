@@ -77,9 +77,13 @@ export function ProductDetailScreen({ productId }: Props) {
 }
 
 const styles = StyleSheet.create({
+  // On a tablet the page is a centred column rather than text across the width.
   content: {
     gap: spacing.md,
     padding: spacing.md,
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
   },
   image: {
     width: '100%',

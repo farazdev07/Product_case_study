@@ -1,10 +1,11 @@
 import { useCallback } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { FlashList, type ListRenderItem } from '@shopify/flash-list';
 import { useDispatch, useSelector } from 'react-redux';
 import { spacing } from '@shared/config/theme';
 import { Button, Screen, Spinner, Text } from '@shared/ui';
 import { getEmptyState } from '@features/catalog/lib/emptyState';
+import { columnsForWidth } from '@features/catalog/lib/columns';
 import { useProductFeed } from '@features/catalog/lib/useProductFeed';
 import {
   clearFilters,
@@ -22,9 +23,6 @@ type Props = {
 
 // A stable key function; an inline one would be a new reference every render.
 const keyExtractor = (product: Product) => String(product.id);
-
-// Module-level so the list never sees a new separator component.
-const Separator = () => <View style={styles.separator} />;
 
 function RetryMessage({ onRetry }: { onRetry: () => void }) {
   return (
@@ -52,12 +50,17 @@ export function CatalogScreen({ onProductPress }: Props) {
   } = useProductFeed();
   const dispatch = useDispatch();
   const searchTerm = useSelector(selectSearchTerm);
+  const numColumns = columnsForWidth(useWindowDimensions().width);
   const hasActiveFilters = useSelector(selectActiveFilterCount) > 0;
 
   // A stable renderItem keeps FlashList from re-rendering every visible row
   // when only the footer or refresh state changes.
   const renderItem = useCallback<ListRenderItem<Product>>(
-    ({ item }) => <ProductCard product={item} onPress={onProductPress} />,
+    ({ item }) => (
+      <View style={styles.cell}>
+        <ProductCard product={item} onPress={onProductPress} />
+      </View>
+    ),
     [onProductPress],
   );
 
@@ -99,7 +102,7 @@ export function CatalogScreen({ onProductPress }: Props) {
         data={products}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
-        ItemSeparatorComponent={Separator}
+        numColumns={numColumns}
         contentContainerStyle={styles.list}
         // FlashList v2 keeps the first visible row in place when data changes.
         // A new sort order or filter replaces the rows, so that anchoring left
@@ -116,11 +119,14 @@ export function CatalogScreen({ onProductPress }: Props) {
 }
 
 const styles = StyleSheet.create({
+  // Spacing lives in each cell, not in a separator, so that rows and columns
+  // are spaced the same way: the cell padding plus the list padding give the
+  // original 16 point margin and 8 point gap.
   list: {
-    padding: spacing.md,
+    padding: spacing.md - spacing.xs,
   },
-  separator: {
-    height: spacing.sm,
+  cell: {
+    padding: spacing.xs,
   },
   footer: {
     paddingVertical: spacing.md,

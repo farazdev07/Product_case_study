@@ -1,3 +1,4 @@
+import * as ReactNative from 'react-native';
 import { Provider } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
@@ -475,6 +476,24 @@ describe('CatalogScreen', () => {
       ).not.toBeOnTheScreen();
       expect(requested).toEqual([0, 1]);
     });
+  });
+
+  it.each([
+    ['a phone', 400],
+    ['a tablet in portrait', 834],
+    ['a tablet in landscape', 1376],
+  ])('lists every cached product on %s', (_, width) => {
+    jest
+      .spyOn(ReactNative, 'useWindowDimensions')
+      .mockReturnValue({ width, height: 900, scale: 2, fontScale: 1 });
+    store = makeStore(makeCatalogState([1, 2, 3, 4], 4));
+    stubFetch(pagedCatalog(4));
+
+    renderScreen();
+
+    for (const id of [1, 2, 3, 4]) {
+      expect(screen.getByText(`Product ${id}`)).toBeOnTheScreen();
+    }
   });
 
   describe('offline', () => {
