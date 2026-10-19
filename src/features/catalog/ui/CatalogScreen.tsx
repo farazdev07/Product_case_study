@@ -21,7 +21,6 @@ type Props = {
   onProductPress: (id: number) => void;
 };
 
-// A stable key function; an inline one would be a new reference every render.
 const keyExtractor = (product: Product) => String(product.id);
 
 function RetryMessage({ onRetry }: { onRetry: () => void }) {

@@ -7,14 +7,11 @@ import {
 import type { FiltersRootState } from '@features/catalog/model/filtersSlice';
 
 // The feed is replaced only when the search term or category actually changes.
-// Doing it in a reducer on the action itself would also empty the feed for a
-// repeated value, or for clearFilters when only a price filter was set, and no
-// refetch would follow because the query arguments had not changed.
+// A reducer on the action itself would also empty it for a repeated value or a
+// price-only clearFilters, and no refetch would follow.
 //
-// Offline it is left alone. Nothing can replace the feed while there is no
-// connection, and the screen filters the cached products directly, so clearing
-// would only leave the list empty with no way to restore it. The first fetch
-// after reconnecting replaces the feed for whichever source is selected then.
+// Offline it is left alone: nothing can replace the feed, and the screen filters
+// the cache directly. The first fetch after reconnecting replaces it.
 export const registerFeedReset = (
   listener: ListenerMiddlewareInstance,
 ): void => {

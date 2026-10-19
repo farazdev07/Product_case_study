@@ -91,8 +91,6 @@ export function ProductDetailScreen({ productId }: Props) {
 }
 
 const styles = StyleSheet.create({
-  // On a tablet the page is a centred block rather than content across the
-  // full width.
   content: {
     padding: spacing.md,
     width: '100%',
@@ -113,7 +111,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     backgroundColor: colors.surface,
   },
-  // 45% of the block, square, so the product is shown at a natural shape.
   wideImage: {
     width: '45%',
     aspectRatio: 1,

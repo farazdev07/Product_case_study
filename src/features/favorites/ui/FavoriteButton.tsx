@@ -15,12 +15,9 @@ type Props = {
   large?: boolean;
 };
 
-// The button takes only a primitive id and reads its own state, instead of the
-// card passing `isFavorite` and an `onToggle` down. ProductCard is memoised
-// and rendered by the hundred in a list; a new callback or a changed prop on
-// every toggle would re-render the card, and passing the favourite set would
-// re-render every card whenever any one changed. Selecting a boolean here
-// re-renders only the button that was tapped.
+// Takes only an id and reads its own state so the memoised ProductCard never
+// re-renders on a toggle: a passed-down callback or favourite set would
+// re-render every card when any one changed.
 export const FavoriteButton = memo(function FavoriteButton({
   productId,
   large = false,

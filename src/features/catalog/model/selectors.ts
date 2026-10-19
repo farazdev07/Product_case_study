@@ -57,11 +57,9 @@ const narrow = (
     sortBy,
   );
 
-// Price and rating filter only the pages loaded so far. The API has no price or
-// rating parameters, so narrowing to "under $20" cannot ask the server for more
-// matches: products on pages that were never fetched are not considered, and
-// scrolling to load further pages can add more. The same holds for a category
-// chosen during a search, which dummyjson cannot combine with the search.
+// Price and rating filter only the pages loaded so far: the API has no such
+// parameters, so unfetched pages are not considered until the user scrolls to
+// them. The same holds for a category chosen during a search.
 export const selectVisibleProducts = createSelector(
   [selectFeedProducts, selectFilters],
   (products, filters) =>

@@ -1,12 +1,8 @@
 import { createSlice, nanoid, type PayloadAction } from '@reduxjs/toolkit';
 
-// Interpretation of an underspecified brief. The requirement asks for a
-// "Syncing Queued Actions" banner and offline queue persistence, but the
-// dummyjson API is read-only, so the product catalog has no mutation to queue.
-// Favourites are a local preference that can be recorded offline and delivered
-// to a server later, which gives the queue, the banner state and the
-// reconnection handling something real to do. It is a deliberate reading of
-// the requirement, not a feature the brief names.
+// The brief asks for an offline action queue, but dummyjson is read-only and has
+// no mutation to queue. Favourites are a local preference that can be recorded
+// offline and delivered later, which gives the queue something real to do.
 export type QueuedAction = {
   id: string;
   productId: number;

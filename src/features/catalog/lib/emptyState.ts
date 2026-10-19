@@ -17,8 +17,6 @@ type EmptyStateInput = {
   hasActiveFilters: boolean;
 };
 
-// An empty list means several different things, and each needs different words
-// and a different way out.
 export const getEmptyState = ({
   isFetching,
   isError,

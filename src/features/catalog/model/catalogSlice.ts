@@ -1,9 +1,6 @@
-// Why a hand-written normalised slice instead of persisting the RTK Query cache:
-// RTKQ's internal cache shape is an implementation detail and its entries are
-// evicted when subscriptions change, so it is not a stable thing to rehydrate.
-// This slice is ours: products are stored once by id, the feed is an ordered
-// list of ids, and its shape only changes when we change it. RTKQ remains the
-// transport; the UI reads from here.
+// A hand-written normalised slice rather than a persisted RTK Query cache: RTKQ's
+// cache shape is internal and its entries are evicted when subscriptions change,
+// so it is not stable to rehydrate. RTKQ stays the transport; the UI reads here.
 import {
   createEntityAdapter,
   createSelector,
