@@ -1,5 +1,7 @@
 # ProductCatalog
 
+[![CI](https://github.com/farazdev07/Product_case_study/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/farazdev07/Product_case_study/actions/workflows/ci.yml)
+
 ## 1. What this is
 
 ProductCatalog is a React Native 0.80 (TypeScript, New Architecture) app that browses the public dummyjson product API with search, category, price, rating and sort filters. It is built for offline use: products, the category list and the user's favourites are persisted and hydrated synchronously at launch, and favourites made without a connection are queued and delivered on reconnect. Saved products have their own screen, served entirely from the cache. The code is organised into three enforced layers, described below, and every module is covered by tests.
@@ -274,6 +276,14 @@ Pre-commit (Husky) runs three things:
 The `commit-msg` hook runs commitlint with the conventional-commits configuration. Commits are `type(scope): subject`, one concern per commit, and body lines are limited to 100 characters.
 
 CI (`.github/workflows/ci.yml`) runs on every push and pull request, on Node 22 with a frozen lockfile: `yarn format:check`, `yarn lint`, `yarn tsc --noEmit`, `yarn test --coverage`. The layer rules run as part of lint. The hooks and the pipeline run the same gates, so a change that would fail CI fails locally first.
+
+**What a fuller pipeline would add.** CI here is the four fast gates; the next steps would be:
+
+- Android and iOS build jobs, so a compile failure is caught in CI rather than locally. They need the Android SDK and NDK and a full CocoaPods install on the runner, which is slow and adds failure modes unrelated to the code.
+- An end-to-end job that runs the manual device sequence on an emulator.
+- Dependency and licence auditing on a schedule.
+- Branch protection requiring the checks to pass before merge, which has an effect once work goes through pull requests.
+- Release automation: versioning, signed builds and store upload.
 
 ## 8. Decisions and trade-offs
 
