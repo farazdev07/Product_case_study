@@ -6,6 +6,7 @@ import {
 } from '@testing-library/react-native';
 import App from '@app/App';
 import { store } from '@app/store';
+import { toggleFavorite } from '@features/favorites';
 import { baseApi } from '@shared/api/baseApi';
 
 const product = {
@@ -47,6 +48,9 @@ describe('App', () => {
   afterEach(() => {
     // Unmount first: it arms RTK Query's expiry timers, which the reset cancels.
     cleanup();
+    store
+      .getState()
+      .favorites.ids.forEach(id => store.dispatch(toggleFavorite(id)));
     store.dispatch(baseApi.util.resetApiState());
     jest.clearAllTimers();
     jest.restoreAllMocks();
@@ -61,6 +65,33 @@ describe('App', () => {
   it('navigates to the product detail with the route param', async () => {
     render(<App />);
 
+    fireEvent.press(await screen.findByRole('button', { name: 'Product 1' }));
+
+    expect(
+      screen.getByText('Only the detail screen shows this'),
+    ).toBeOnTheScreen();
+  });
+
+  it('shows the number of saved products in the header', async () => {
+    render(<App />);
+    expect(
+      await screen.findByRole('button', { name: 'Saved (0)' }),
+    ).toBeOnTheScreen();
+
+    fireEvent.press(
+      await screen.findByRole('button', { name: 'Add to favorites' }),
+    );
+
+    expect(screen.getByRole('button', { name: 'Saved (1)' })).toBeOnTheScreen();
+  });
+
+  it('opens the saved screen from the header and a saved row opens its detail', async () => {
+    render(<App />);
+    fireEvent.press(
+      await screen.findByRole('button', { name: 'Add to favorites' }),
+    );
+
+    fireEvent.press(screen.getByRole('button', { name: 'Saved (1)' }));
     fireEvent.press(await screen.findByRole('button', { name: 'Product 1' }));
 
     expect(

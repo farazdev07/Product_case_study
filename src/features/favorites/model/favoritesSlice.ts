@@ -121,6 +121,8 @@ export const selectIsFavorite = (
   state: FavoritesRootState,
   productId: number,
 ) => state.favorites.ids.includes(productId);
+export const selectFavoriteIds = (state: FavoritesRootState) =>
+  state.favorites.ids;
 export const selectQueue = (state: FavoritesRootState) => state.favorites.queue;
 export const selectQueueLength = (state: FavoritesRootState) =>
   state.favorites.queue.length;

@@ -1,6 +1,7 @@
 export { useQueueSync } from '@features/favorites/lib/useQueueSync';
 export {
   favoritesReducer,
+  selectFavoriteIds,
   selectQueueLength,
   toggleFavorite,
 } from '@features/favorites/model/favoritesSlice';

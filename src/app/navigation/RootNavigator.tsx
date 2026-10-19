@@ -1,14 +1,26 @@
 import { useCallback } from 'react';
+import { useNavigation } from '@react-navigation/native';
 import {
   createNativeStackNavigator,
+  type NativeStackNavigationProp,
   type NativeStackScreenProps,
 } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@app/navigation/types';
 import { ScreenWithBanner } from '@app/navigation/ScreenWithBanner';
+import { SavedHeaderButton } from '@app/navigation/SavedHeaderButton';
+import { FavoritesScreen } from '@app/screens/FavoritesScreen';
 import { colors } from '@shared/config/theme';
 import { CatalogScreen, ProductDetailScreen } from '@features/catalog';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+// Defined at module level so React Navigation gets a stable component type.
+function CatalogHeaderRight() {
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+  return <SavedHeaderButton onPress={() => navigation.navigate('Favorites')} />;
+}
 
 function CatalogRoute({
   navigation,
@@ -23,6 +35,21 @@ function CatalogRoute({
   return (
     <ScreenWithBanner>
       <CatalogScreen onProductPress={openProduct} />
+    </ScreenWithBanner>
+  );
+}
+
+function FavoritesRoute({
+  navigation,
+}: NativeStackScreenProps<RootStackParamList, 'Favorites'>) {
+  const openProduct = useCallback(
+    (id: number) => navigation.navigate('ProductDetail', { id }),
+    [navigation],
+  );
+
+  return (
+    <ScreenWithBanner>
+      <FavoritesScreen onProductPress={openProduct} />
     </ScreenWithBanner>
   );
 }
@@ -45,7 +72,12 @@ export function RootNavigator() {
       <Stack.Screen
         name="Catalog"
         component={CatalogRoute}
-        options={{ title: 'Products' }}
+        options={{ title: 'Products', headerRight: CatalogHeaderRight }}
+      />
+      <Stack.Screen
+        name="Favorites"
+        component={FavoritesRoute}
+        options={{ title: 'Saved' }}
       />
       <Stack.Screen
         name="ProductDetail"
