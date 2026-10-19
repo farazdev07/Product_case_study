@@ -7942,6 +7942,7 @@ __metadata:
     react-native-mmkv: ^3.3.3
     react-native-safe-area-context: ^5.10.1
     react-native-screens: ~4.18.0
+    react-native-turbo-image: ^1.24.3
     react-redux: ^9.3.0
     react-test-renderer: 19.1.0
     typescript: 5.8.3
@@ -8100,6 +8101,16 @@ __metadata:
     react: "*"
     react-native: "*"
   checksum: b7942efe7bf316ad66aabf6e3b8b999268d3b88b3d23affb0f90f627d8dd980172f79b48abf476d10c3466ba5123240ee3f18f8d0ff7db5b79b9772cb520afa0
+  languageName: node
+  linkType: hard
+
+"react-native-turbo-image@npm:^1.24.3":
+  version: 1.24.3
+  resolution: "react-native-turbo-image@npm:1.24.3"
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+  checksum: eaf0df126328bddc577df1e977e81b46e5bd4df963d337debf8d0609a165890174ab4019f3be4f487fcdc2c9e43bc833d47bd54c7ef3ed59503b9e39addc9bf5
   languageName: node
   linkType: hard
 

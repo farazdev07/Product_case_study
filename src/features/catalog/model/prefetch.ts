@@ -1,5 +1,5 @@
 import { isAnyOf, type ListenerMiddlewareInstance } from '@reduxjs/toolkit';
-import { Image } from 'react-native';
+import TurboImage from 'react-native-turbo-image';
 import { catalogApi } from '@features/catalog/api/catalogApi';
 
 const isPageFulfilled = isAnyOf(
@@ -26,7 +26,9 @@ export const registerThumbnailPrefetch = (
         for (const url of urls) {
           // Fire and forget: a failed warm-up costs nothing, because the image
           // is requested normally when it is shown.
-          Image.prefetch(url).catch(() => undefined);
+          TurboImage.prefetch([{ uri: url }], 'dataCache').catch(
+            () => undefined,
+          );
         }
       }
     },

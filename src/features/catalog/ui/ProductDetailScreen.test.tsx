@@ -1,5 +1,6 @@
 import * as ReactNative from 'react-native';
-import { Image, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
+import TurboImage from 'react-native-turbo-image';
 import { Provider } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
@@ -63,7 +64,7 @@ describe('ProductDetailScreen', () => {
         .spyOn(ReactNative.Dimensions, 'get')
         .mockReturnValue({ width, height: 900, scale: 2, fontScale: 1 });
     const imageStyle = () =>
-      StyleSheet.flatten(screen.UNSAFE_getByType(Image).props.style);
+      StyleSheet.flatten(screen.UNSAFE_getByType(TurboImage).props.style);
     // The nearest ancestor of the price that lays its children out in a row.
     const priceRowStyle = () => {
       for (
@@ -210,7 +211,7 @@ describe('ProductDetailScreen', () => {
 
     renderScreen(4);
 
-    expect(screen.UNSAFE_getByType(Image).props.source).toEqual({
+    expect(screen.UNSAFE_getByType(TurboImage).props.source).toEqual({
       uri: 'https://example.test/4.webp',
     });
   });

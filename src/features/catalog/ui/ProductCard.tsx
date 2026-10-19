@@ -1,5 +1,6 @@
 import { memo, useCallback } from 'react';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import TurboImage from 'react-native-turbo-image';
 import { colors, radii, spacing } from '@shared/config/theme';
 import { Text } from '@shared/ui';
 import { FavoriteButton } from '@features/favorites';
@@ -33,7 +34,11 @@ export const ProductCard = memo(function ProductCard({
         onPress={handlePress}
         style={styles.main}
       >
-        <Image source={{ uri: product.thumbnail }} style={styles.image} />
+        <TurboImage
+          source={{ uri: product.thumbnail }}
+          style={styles.image}
+          cachePolicy="dataCache"
+        />
         <View style={styles.details}>
           <Text variant="subtitle" numberOfLines={2}>
             {product.title}

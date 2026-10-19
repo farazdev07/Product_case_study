@@ -1,5 +1,5 @@
 import { configureStore, createListenerMiddleware } from '@reduxjs/toolkit';
-import { Image } from 'react-native';
+import TurboImage from 'react-native-turbo-image';
 import { baseApi } from '@shared/api/baseApi';
 import { catalogApi } from '@features/catalog/api/catalogApi';
 import { registerThumbnailPrefetch } from '@features/catalog/model/prefetch';
@@ -33,17 +33,20 @@ const imagesOf = (ids: number[]) =>
 
 describe('registerThumbnailPrefetch', () => {
   let store: ReturnType<typeof makeStore>;
-  let prefetch: jest.SpyInstance;
+  const prefetch = jest.mocked(TurboImage.prefetch);
 
   beforeEach(() => {
     store = makeStore();
-    prefetch = jest.spyOn(Image, 'prefetch').mockResolvedValue(true);
+    prefetch.mockClear();
   });
 
   afterEach(() => {
     store.dispatch(baseApi.util.resetApiState());
     jest.restoreAllMocks();
   });
+
+  const prefetchedUrls = () =>
+    prefetch.mock.calls.flatMap(([sources]) => sources.map(({ uri }) => uri));
 
   const load = (
     arg: Parameters<typeof catalogApi.endpoints.getProducts.initiate>[0],
@@ -57,9 +60,18 @@ describe('registerThumbnailPrefetch', () => {
 
     await load({ limit: 3, skip: 0 });
 
-    expect(prefetch.mock.calls.map(([url]) => url)).toEqual(
-      imagesOf([1, 2, 3]),
-    );
+    expect(prefetchedUrls()).toEqual(imagesOf([1, 2, 3]));
+  });
+
+  it('prefetches into the library disk cache, not the HTTP cache', async () => {
+    stubFetch(pagedCatalog(10));
+
+    await load({ limit: 1, skip: 0 });
+
+    expect(prefetch.mock.calls.map(([, policy]) => policy)).toEqual([
+      'dataCache',
+      'dataCache',
+    ]);
   });
 
   it('prefetches each later page as it arrives', async () => {
@@ -68,9 +80,7 @@ describe('registerThumbnailPrefetch', () => {
     await load({ limit: 3, skip: 0 });
     await load({ limit: 3, skip: 3 });
 
-    expect(prefetch.mock.calls.map(([url]) => url)).toEqual(
-      imagesOf([1, 2, 3, 4, 5, 6]),
-    );
+    expect(prefetchedUrls()).toEqual(imagesOf([1, 2, 3, 4, 5, 6]));
   });
 
   it('prefetches search and category pages too', async () => {
@@ -103,7 +113,7 @@ describe('registerThumbnailPrefetch', () => {
 
     await load({ limit: 1, skip: 0 });
 
-    expect(prefetch.mock.calls.map(([url]) => url)).toEqual([same.thumbnail]);
+    expect(prefetchedUrls()).toEqual([same.thumbnail]);
   });
 
   it('prefetches only the thumbnail when a product has no images', async () => {
@@ -114,7 +124,7 @@ describe('registerThumbnailPrefetch', () => {
 
     await load({ limit: 1, skip: 0 });
 
-    expect(prefetch.mock.calls.map(([url]) => url)).toEqual([bare.thumbnail]);
+    expect(prefetchedUrls()).toEqual([bare.thumbnail]);
   });
 
   it('does not prefetch for other endpoints', async () => {

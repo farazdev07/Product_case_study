@@ -1,4 +1,4 @@
-import { Image } from 'react-native';
+import TurboImage from 'react-native-turbo-image';
 
 type StoredValue = string | number | boolean;
 
@@ -63,8 +63,17 @@ jest.mock(
   () => jest.requireActual('react-native-safe-area-context/jest/mock').default,
 );
 
-// React Native's Jest mock of Image.prefetch returns undefined, while the real
-// one returns a promise.
+// The native image view cannot load under Node. The stand-in renders a plain
+// View, so props such as `source` and `style` stay inspectable, and its
+// prefetch resolves like the real one.
+jest.mock('react-native-turbo-image', () => {
+  const { createElement } = jest.requireActual('react');
+  const { View } = jest.requireActual('react-native');
+  const MockTurboImage = (props: object) => createElement(View, props);
+  MockTurboImage.prefetch = jest.fn();
+  return { __esModule: true, default: MockTurboImage };
+});
+
 beforeEach(() => {
-  jest.spyOn(Image, 'prefetch').mockResolvedValue(true);
+  jest.mocked(TurboImage.prefetch).mockResolvedValue(true);
 });

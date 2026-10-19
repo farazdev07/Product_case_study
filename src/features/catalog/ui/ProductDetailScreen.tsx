@@ -1,10 +1,10 @@
 import {
-  Image,
   ScrollView,
   StyleSheet,
   useWindowDimensions,
   View,
 } from 'react-native';
+import TurboImage from 'react-native-turbo-image';
 import { useSelector } from 'react-redux';
 import { colors, radii, spacing } from '@shared/config/theme';
 import { Button, Screen, Spinner, Text } from '@shared/ui';
@@ -58,10 +58,11 @@ export function ProductDetailScreen({ productId }: Props) {
     <Screen belowHeader>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={isWide ? styles.wideLayout : styles.narrowLayout}>
-          <Image
+          <TurboImage
             source={{ uri: product.images[0] ?? product.thumbnail }}
             style={isWide ? styles.wideImage : styles.image}
             resizeMode="contain"
+            cachePolicy="dataCache"
           />
           <View style={isWide ? styles.wideDetails : styles.narrowLayout}>
             <Text variant="title">{product.title}</Text>
