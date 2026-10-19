@@ -25,7 +25,7 @@ A React Native 0.80 (TypeScript, New Architecture) product catalog over the publ
 | Pre-commit hook demonstrating CI                         | Husky runs lint, typecheck and related tests; CI runs the same gates                                                                                       | §6                                                         |
 | Architecture brief                                       | Caching and hydration, queue and reconnection, list performance                                                                                            | §4                                                         |
 
-Two requirements are met by interpretation rather than literally, each explained where it appears: the API is read-only, so favourites were added to give the queued-actions state something real to carry (§4b); and price and rating filter the loaded pages, because the API has no query parameters for them (§7).
+Two requirements are met by interpretation rather than literally, each explained where it appears: no user action in the brief writes anything, so favourites were added to give the queued-actions state something real to carry (§4b); and price and rating filter the loaded pages, because the API has no query parameters for them (§7).
 
 ## 2. Setup
 
@@ -133,7 +133,7 @@ Catalog writes are throttled to one per second so paging does not hammer storage
 
 ### b. Offline queue and reconnection
 
-**The API is read-only.** dummyjson exposes no mutations, so nothing could be queued and the "Syncing Queued Actions" state could never fire. Rather than ship an unreachable state, favourites were added as a local action queued offline and delivered on reconnect. `PUT /products/{id}` stands in for a favourites endpoint that does not exist: it returns a simulated update and stores nothing, so it demonstrates ordered delivery, retry and persistence, not server-side storage.
+**No user action in the brief writes anything.** dummyjson does expose write endpoints, `POST /products/add` and `PUT /products/{id}`, but they are simulated, persisting nothing, and none of them map to an action a user of a product catalog would take; editing the global catalog is not a user feature. So nothing in the brief as written could be queued, and the "Syncing Queued Actions" state could never fire. Rather than ship an unreachable state, favourites were added as a real local action, queued offline and delivered on reconnect. `PUT /products/{id}` is the stand-in transport for a favourites endpoint that does not exist: it returns a simulated update and stores nothing, so what this demonstrates is ordered delivery, retry and persistence, not server-side storage.
 
 - **Optimistic** — the local id set updates immediately; the user never waits on the network for a preference.
 - **Coalescing** — an action that cancels one already queued removes both, since the pair is a no-op on the server.
