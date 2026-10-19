@@ -265,7 +265,7 @@ CI (`.github/workflows/ci.yml`) runs on every push and pull request, on Node 22 
 - **The queue is unbounded.** There is no cap on queued actions and no conflict resolution against server state.
 - **Filters apply to loaded pages.** A price or rating filter cannot find a match on a page that has not been fetched. A real backend would take these as query parameters.
 - **Filter selections are not persisted** across launches; only data is.
-- **Saved products are not ordered by save time.** The Saved screen lists favourites newest first by reversing the persisted id order, which avoids a timestamp field. A product that is favourited but missing from the entity cache is skipped, not shown, until the cache holds it again.
+- **Saved products missing from the cache are hidden.** The Saved screen resolves ids from the cached entities, so a favourite whose product is no longer cached is skipped (and counted in the header) until the cache holds it again.
 - **The release build is signed with the debug keystore.** There is no signing configuration, crash reporting or analytics.
 - **No end-to-end tests.** Behaviour is covered by component and hook tests and by the manual device sequence above. Automating that sequence with an end-to-end runner is the most valuable test addition.
 - **The categories list is cached only after one online launch.** A first launch offline shows the feed's empty state and no chips.
